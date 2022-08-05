@@ -1,19 +1,22 @@
 import os
-from todo_utilities import filesIO, now, never
+from todo_utilities import filesIO, now, never, diff_dates
 from todo_utilities import decorate_class, debugger, logger
 
-class Task(dict):
+class Task():
     TODO = 'todo'
     DONE = 'done'
+    DEL = 'del'
 
     storage = None
     
     def __init__(self, name):
         self.name = name
         self.iname = int(name)
-        self.value = 0
         self.path = os.path.join(Task.storage.path, name + '.task')
         self.info = self.read()
+
+        self.urgency = diff_dates(self.info['due'], now())
+        self.importance = 0
 
 
     def _newborn_info(self):
@@ -59,7 +62,12 @@ class Task(dict):
         self.info['description'] = value
         self.write()
 
-    
+
+    @property
+    def status(self):
+        return self.info['status']
+        
+
     @property
     def following(self):
         return self.info['following']
@@ -68,7 +76,7 @@ class Task(dict):
     def following(self, value):
         self.info['following'] = value
         self.write()
-        
+
 
     @property
     def followers(self):
@@ -136,9 +144,24 @@ class Task(dict):
         self.write()
 
 
-    def todo(self):
+    def restore(self):
         self.info['status'] = Task.TODO
         self.info['completed'] = None
-        self.write()       
+        self.info['deleted'] = None
+        self.write()   
+
+    def delete(self):
+        self.info['status'] = Task.DEL
+        self.info['deleted'] = now()
+        self.write()
+
+    def active(self):
+        return self.info['status'] == Task.TODO
+
+    def completed(self):
+        return self.info['status'] == Task.DONE
+
+    def deleted(self):
+        return self.info['deleted'] is not None
 
 Task = decorate_class(Task, debugger(logger, 'Task'))
