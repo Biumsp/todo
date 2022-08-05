@@ -90,4 +90,4 @@ class Project():
     def completed(self):
         return self.status == Project.DONE
 
-Project = decorate_class(Project, debugger(logger, 'Project'))
+#Project = decorate_class(Project, debugger(logger, 'Project'))

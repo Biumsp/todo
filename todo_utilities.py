@@ -10,7 +10,7 @@ from biumsputils.colorcodes import Colorcodes
 from datetime import datetime
 
 _c = Colorcodes()
-filesIO = decorate_module(filesIO, debugger(logger, 'filesIO'))
+#filesIO = decorate_module(filesIO, debugger(logger, 'filesIO'))
 
 def get_valid_description(message: str, initial_message=''):
     if message is None:

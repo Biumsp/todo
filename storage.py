@@ -21,8 +21,6 @@ class Storage():
 
         self.tasks = self._get_tasks()
         self.projects = self._get_projects()
-
-        self.compute_importance()
         
 
     def __init(self):
@@ -279,7 +277,21 @@ class Storage():
 
 
     def compute_importance(self):
-        pass
+        def compute_task_importance(task, visited):
+            followers = [Task(t) for t in task.followers]
+            followers = [t for t in followers if t.active()]
+
+            tot = 1
+            visited.append(task.name)
+            for t in followers:
+                if not t.name in visited:
+                    tot += compute_task_importance(t, visited)
+            
+            return tot
+
+        for task in self.tasks:
+            task.importance = compute_task_importance(task, [])
+
 
     def active_tasks(self):
         return [t for t in self.tasks if t.active()]
@@ -313,7 +325,7 @@ class Storage():
 
                 for t in tasks:
                     output.append((_c.green + '{:5} {:19} {:^6} {:>2}/{:<3} - ' + _c.reset).format(
-                        t.name, t.due, t.status, t.importance, 100//min(t.urgency, 1)) + t.description.splitlines()[0])
+                        t.name, t.due, t.status, t.importance, 100//max(t.urgency, 1)) + t.description.splitlines()[0])
 
             elif info == 2:
                 output.append((_c.orange + '{:^5} {:4} {:^6} - {}' + _c.reset).format(
@@ -321,7 +333,7 @@ class Storage():
 
                 for t in tasks:
                     output.append((_c.green + '{:5} {:^6} {:>2}/{:<3} - ' + _c.reset).format(
-                        t.name, t.status, t.importance, 100//min(t.urgency, 1)) + t.description.splitlines()[0])
+                        t.name, t.status, t.importance, 100//max(t.urgency, 1)) + t.description.splitlines()[0])
 
             elif info == 1:
                 output.append((_c.orange + '{:^5} {:^6} - {}' + _c.reset).format(
@@ -329,34 +341,34 @@ class Storage():
 
                 for t in tasks:
                     output.append((_c.green + '{:5} {:>2}/{:<3} - ' + _c.reset).format(
-                        t.name, t.importance, 100//min(t.urgency, 1)) + t.description.splitlines()[0])
+                        t.name, t.importance, 100//max(t.urgency, 1)) + t.description.splitlines()[0])
                     
 
         elif info and not one_line:
             if info > 2:
                 for t in tasks:
-                    out = (_c.green + 'ID: {:5}\nstatus: {:^6}\ndue-date: {:19}\nI/U: {:>3}/{:<3}' + _c.reset).format(
-                        t.name, t.status, t.due, t.importance, 100//min(t.urgency, 1))
+                    out = (_c.orange + 'ID: {:5}\nstatus: {:^6}\ndue-date: {:19}\nI/U: {:>3}/{:<3}' + _c.reset).format(
+                        t.name, t.status, t.due, t.importance, 100//max(t.urgency, 1))
                     out += '\n\t' + t.description.replace('\n', '\n\t')
                     output.append(out)
 
             elif info == 2:
                 for t in tasks:
-                    out = (_c.green + 'ID: {:5}\nstatus: {:^6}\nI/U: {:>3}/{:<3}' + _c.reset).format(
-                        t.name, t.status, t.due, t.importance, 100//min(t.urgency, 1))
+                    out = (_c.orange + 'ID: {:5}\nstatus: {:^6}\nI/U: {:>3}/{:<3}' + _c.reset).format(
+                        t.name, t.status, t.due, t.importance, 100//max(t.urgency, 1))
                     out += '\n\t' + t.description.replace('\n', '\n\t')
                     output.append(out)
 
             elif info == 1:
                 for t in tasks:
-                    out = (_c.green + 'ID: {:5}\nI/U: {:>3}/{:<3}' + _c.reset).format(
-                        t.name, t.status, t.due, t.importance, 100//min(t.urgency, 1))
+                    out = (_c.orange + 'ID: {:5}\nI/U: {:>3}/{:<3}' + _c.reset).format(
+                        t.name, t.status, t.due, t.importance, 100//max(t.urgency, 1))
                     out += '\n\t' + t.description.replace('\n', '\n\t')
                     output.append(out)
 
 
         elif not info and one_line:
-            output.append(_c.green + '  ID  - description' + _c.reset)
+            output.append(_c.orange + '  ID  - description' + _c.reset)
             for t in tasks:
                 out = (_c.green + '{:5} - ' + _c.reset).format(
                     t.name) + t.description.splitlines()[0] 
@@ -393,8 +405,8 @@ class Storage():
         output = []
         for p in projects:
             output.append((_c.green + '{:4} - {:19} - {:>2}/{:<3} ' + _c.reset + '{}').format(
-                p.status, p.due, p.importance, 100//min(p.urgency, 1), p.name))
+                p.status, p.due, p.importance, 100//max(p.urgency, 1), p.name))
 
         print('\n'.join(output))
 
-Storage = decorate_class(Storage, debugger(logger, 'Storage'))
+#Storage = decorate_class(Storage, debugger(logger, 'Storage'))

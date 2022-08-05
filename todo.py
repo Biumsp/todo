@@ -26,6 +26,7 @@ DEFAULT_INFO = 0
 DEFAULT_ONELINE = True
 
 @click.group(invoke_without_command=True)
+@click.pass_context
 @click.option('--logging-info', is_flag=True, help='Set logging to info', hidden=True)
 @click.option('--logging-debug', is_flag=True, help='Set logging to debug', hidden=True)
 @click.option('--logging-io', is_flag=True, help='Activate I/O logging', hidden=True)
@@ -39,7 +40,7 @@ DEFAULT_ONELINE = True
 @click.option('--limit', '-l', default=5, help='Limit the number of results')
 @click.option('--no-limit', '-L', is_flag=True, help='Show all the results')
 @click.option('--one-line / --multi-line', '-o / -O', is_flag=True, default=DEFAULT_ONELINE, help='Short output')
-def cli(logging_info, logging_debug, logging_io, indent, sort,
+def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
 		project, active, completed, deleted, limit, no_limit, info, one_line):
 
 	# Validate input
@@ -55,7 +56,8 @@ def cli(logging_info, logging_debug, logging_io, indent, sort,
 	if logging_io: logger.activate_IO()
 	if indent: print.auto_indent()
 
-	storage.list(sort, project, active, completed, deleted, limit, info, one_line)
+	if ctx.invoked_subcommand is None:
+		storage.list(sort, project, active, completed, deleted, limit, info, one_line)
 
 
 @cli.command(no_args_is_help=True)
