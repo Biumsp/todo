@@ -143,3 +143,17 @@ def edit(task_id, project, new_project, after, before, due, override, commit):
 	validate(excludes(due, before), 'cannot modify precedence and due-date at the same time')
 
 	storage.edit(task_id, project, new_project, after, before, due, override, commit)
+
+
+@cli.command()
+def push():
+    '''Push the storage to remote'''
+    
+    storage.git.push()
+
+
+@cli.command()
+def pull():
+    '''Pull the storage from remote'''
+    
+    storage.git.pull()
