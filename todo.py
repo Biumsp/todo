@@ -30,10 +30,23 @@ DEFAULT_ONELINE = True
 @click.option('--logging-debug', is_flag=True, help='Set logging to debug', hidden=True)
 @click.option('--logging-io', is_flag=True, help='Activate I/O logging', hidden=True)
 @click.option('--indent', is_flag=True, help='Nested indentation', hidden=True)
-def cli(logging_info, logging_debug, logging_io, indent):
+@click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I']))
+@click.option('--project', '-p', multiple=True, help='Project to filter by')
+@click.option('--info', '-i', default=DEFAULT_INFO, count=True, help='Show info')
+@click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active tasks')
+@click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed tasks')
+@click.option('--deleted / --no-deleted', '-d / -D', is_flag=True, default=False, help='Include deleted tasks')
+@click.option('--limit', '-l', default=5, help='Limit the number of results')
+@click.option('--no-limit', '-L', is_flag=True, help='Show all the results')
+@click.option('--one-line / --multi-line', '-o / -O', is_flag=True, default=DEFAULT_ONELINE, help='Short output')
+def cli(logging_info, logging_debug, logging_io, indent, sort,
+		project, active, completed, deleted, limit, no_limit, info, one_line):
 
 	# Validate input
 	validate(excludes(logging_debug, logging_info), 'can only set one info level')
+
+	project = list(set(project))
+	if no_limit: limit = 10000
 
 	# Set logging state
 	if logging_debug: logger.set_state_debug()
@@ -42,8 +55,8 @@ def cli(logging_info, logging_debug, logging_io, indent):
 	if logging_io: logger.activate_IO()
 	if indent: print.auto_indent()
 
-	#task()
-	
+	storage.list(sort, project, active, completed, deleted, limit, info, one_line)
+
 
 @cli.command(no_args_is_help=True)
 @click.option('--project', '-p', multiple=True, help='Project the task belongs to')
@@ -62,25 +75,6 @@ def add(project, new_project, description, after, before, due, commit):
 	before 		 = list(set(before))
 
 	storage.add(project, new_project, description, after, before, due, commit)
-
-
-@cli.command()
-@click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I']))
-@click.option('--project', '-p', multiple=True, help='Project to filter by')
-@click.option('--info', '-i', default=DEFAULT_INFO, count=True, help='Show info')
-@click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active tasks')
-@click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed tasks')
-@click.option('--deleted / --no-deleted', '-d / -D', is_flag=True, default=False, help='Include deleted tasks')
-@click.option('--limit', '-l', default=5, help='Limit the number of results')
-@click.option('--no-limit', '-L', is_flag=True, help='Show all the results')
-@click.option('--one-line / --multi-line', '-o / -O', is_flag=True, default=DEFAULT_ONELINE, help='Short output')
-def task(sort, project, active, completed, deleted, limit, no_limit, info, one_line):
-
-	# Validate input
-	project = list(set(project))
-	if no_limit: limit = 10000
-
-	storage.list(sort, project, active, completed, deleted, limit, info, one_line)
 
 
 @cli.command()
