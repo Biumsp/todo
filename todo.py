@@ -1,12 +1,8 @@
-from todo_utilities import print
-from todo_utilities import excludes, validate, never
+from todo_utilities import print, filesIO
+from todo_utilities import excludes, validate, never, now, fatal_error
 from todo_utilities import logger
 from storage import Storage
 import os, click, sys
-
-# # Read configurations
-# HOME = os.path.expanduser('~')
-# CONFIG = os.path.join(HOME, '.myconfig/photos/photos_config.json') 
 
 # CONFIG = filesIO.read(CONFIG, loads=True)
 # PATTERNS = CONFIG['patterns']   # {"pattern": "source"}
@@ -18,12 +14,22 @@ import os, click, sys
 # print.auto_indent()
 # print.lines_step()
 
-STORAGE_PATH = os.path.expanduser('~/.todo_storage')
-storage = Storage(STORAGE_PATH)
+# Read configurations
+MY_STATUS = os.getenv('MY_STATUS')
+HOME = os.path.expanduser('~')
 
-DEFAULT_SORT = 'urgency'
-DEFAULT_INFO = 0
-DEFAULT_ONELINE = True
+STORAGE_PATH = os.path.join(HOME, '.todo_storage')
+STORAGE_PATH = os.path.join(STORAGE_PATH, MY_STATUS)
+CONFIG = os.path.join(STORAGE_PATH, '.todo_config.json')
+
+storage = Storage(STORAGE_PATH)
+config = filesIO.read(CONFIG, loads=True)
+
+DEFAULT_SORT = config['default_sort']
+DEFAULT_INFO = config['default_info']
+DEFAULT_ONELINE = config['default_oneline']
+DEFAULT_LIMIT = config['default_limit']
+
 
 @click.group(invoke_without_command=True)
 @click.pass_context
@@ -37,7 +43,7 @@ DEFAULT_ONELINE = True
 @click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active tasks')
 @click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed tasks')
 @click.option('--deleted / --no-deleted', '-d / -D', is_flag=True, default=False, help='Include deleted tasks')
-@click.option('--limit', '-l', default=5, help='Limit the number of results')
+@click.option('--limit', '-l', default=DEFAULT_LIMIT, help='Limit the number of results')
 @click.option('--no-limit', '-L', is_flag=True, help='Show all the results')
 @click.option('--one-line / --multi-line', '-o / -O', is_flag=True, default=DEFAULT_ONELINE, help='Short output')
 def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
@@ -66,9 +72,11 @@ def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
 @click.option('--description', '-d', type=str, help='Task description')
 @click.option('--after', '-a', multiple=True, help='The tasks it depends on')
 @click.option('--before', '-b', multiple=True, help='The tasks depending on this task')
-@click.option('--due', default=never(), help='Due date')
+@click.option('--due', '-due', default=never(), type=click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d', r'%Y']), help='Due date')
+@click.option('--time', '-t', default=1, help='Estimated time to complete the task')
+@click.option('--priority', '-P', count=True, help='Set priority level')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def add(project, new_project, description, after, before, due, commit):
+def add(project, new_project, description, after, before, due, time, priority, commit):
 
 	# Validate input
 	project 	 = list(set(project))
@@ -76,12 +84,22 @@ def add(project, new_project, description, after, before, due, commit):
 	after 		 = list(set(after))
 	before 		 = list(set(before))
 
-	storage.add(project, new_project, description, after, before, due, commit)
+	today = now(date=True)
+	if due.year == 1900: 
+		due = due.replace(year=today.year)
+		if due < now(date=True): 
+			due = due.replace(year=today.year+1)
+
+	if due < today: 
+		fatal_error('date cannot be in the past')
+	due = due.strftime(r"%Y-%m-%d")
+
+	storage.add(project, new_project, description, after, before, due, time, priority, commit)
 
 
 @cli.command()
 @click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I']))
-@click.option('--limit', '-l', default=5, help='Limit the number of results')
+@click.option('--limit', '-l', default=DEFAULT_LIMIT, help='Limit the number of results')
 @click.option('--no-limit', '-L', is_flag=True, help='Show all the results')
 @click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active projects')
 @click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed projects')
@@ -124,10 +142,11 @@ def delete(task_id, commit):
 @click.option('--new-project', '-n', multiple=True, help='Create new project and add it to task')
 @click.option('--after', '-a', multiple=True, help='The tasks it depends on')
 @click.option('--before', '-b', multiple=True, help='The tasks depending on this task')
-@click.option('--due', '-d', type=str, help='Due date')
+@click.option('--due', '-due', default=None, type=click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d', r'%Y']), help='Due date')
+@click.option('--delete-due', '-D', is_flag=True, help='Due date')
 @click.option('--override', '-O', is_flag=True, help='Override existing info')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def edit(task_id, project, new_project, after, before, due, override, commit):
+def edit(task_id, project, new_project, after, before, due, delete_due, override, commit):
 	
 	# Validate input
 	project 	 = list(set(project))
@@ -135,6 +154,21 @@ def edit(task_id, project, new_project, after, before, due, override, commit):
 	after 		 = list(set(after))
 	before 		 = list(set(before))
 
+	# Validate due-date
+	today = now(date=True)
+	if due is not None:
+		if due.year == 1900: 
+			due = due.replace(year=today.year)
+			if due < now(date=True): 
+				due = due.replace(year=today.year+1)
+
+		if due < now(date=True): fatal_error('date cannot be in the past')
+		due = due.strftime(r"%Y-%m-%d")
+
+	validate(excludes(delete_due, due), 'cannot modify and delete the due-date at the same time')
+	if delete_due: due = never()
+
+	# Check exclusions
 	validate(excludes(after, project), 'cannot modify projects and reference at the same time')
 	validate(excludes(before, project), 'cannot modify projects and reference at the same time')
 	validate(excludes(after, new_project), 'cannot modify projects and reference at the same time')
@@ -145,6 +179,14 @@ def edit(task_id, project, new_project, after, before, due, override, commit):
 	validate(excludes(due, before), 'cannot modify precedence and due-date at the same time')
 
 	storage.edit(task_id, project, new_project, after, before, due, override, commit)
+
+
+@cli.command(no_args_is_help=True)
+@click.argument('task-id', type=int, required=True)
+def show(task_id):
+	'''Show all info about the task'''
+
+	storage.show(task_id)
 
 
 @cli.command()

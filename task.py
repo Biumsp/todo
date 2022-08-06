@@ -1,4 +1,4 @@
-import os
+import os, math
 from todo_utilities import filesIO, now, never, diff_dates
 from todo_utilities import decorate_class, debugger, logger
 
@@ -13,10 +13,21 @@ class Task():
         self.name = name
         self.iname = int(name)
         self.path = os.path.join(Task.storage.path, name + '.task')
-        self.info = self.read()
-
-        self.urgency = diff_dates(self.info['due'], now())
+        self.info = self.read() # All static attributes of the task
+        
+        self.urgency = self._get_urgency()
         self.importance = 0
+
+
+    def _get_urgency(self):
+        time_left = diff_dates(self.info['due'], now())
+        hours_per_day = (self.priority*2 + 0.5)
+        days_to_complete = self.time/hours_per_day
+
+        urgency = time_left//days_to_complete
+        urgency = 100//max(urgency, 1)
+
+        return math.floor(urgency)
 
 
     def _newborn_info(self):
@@ -26,6 +37,8 @@ class Task():
             'following': [],
             'followers': [],
             'projects': [],
+            'time': 1,
+            'priority': 0,
             'due': never(),
             'created': now(),
             'completed': None,
@@ -59,8 +72,9 @@ class Task():
         
     @description.setter
     def description(self, value):
+        old_value = self.info['description']
         self.info['description'] = value
-        self.write()
+        if old_value != value: self.write()
 
 
     @property
@@ -74,8 +88,9 @@ class Task():
         
     @following.setter
     def following(self, value):
+        old_value = self.info['following']
         self.info['following'] = value
-        self.write()
+        if old_value != value: self.write()
 
 
     @property
@@ -84,8 +99,9 @@ class Task():
         
     @followers.setter
     def followers(self, value):
+        old_value = self.info['followers']
         self.info['followers'] = value
-        self.write()
+        if old_value != value: self.write()
 
     
     @property
@@ -94,8 +110,9 @@ class Task():
         
     @projects.setter
     def projects(self, value):
+        old_value = self.info['projects']
         self.info['projects'] = value
-        self.write()
+        if old_value != value: self.write()
 
 
     @property
@@ -104,8 +121,9 @@ class Task():
         
     @due.setter
     def due(self, value):
+        old_value = self.info['due']
         self.info['due'] = value
-        self.write()
+        if old_value != value: self.write()
 
     
     @property
@@ -114,8 +132,9 @@ class Task():
         
     @created.setter
     def created(self, value):
+        old_value = self.info['created']
         self.info['created'] = value
-        self.write()
+        if old_value != value: self.write()
 
     
     @property
@@ -124,8 +143,34 @@ class Task():
         
     @completed.setter
     def completed(self, value):
+        old_value = self.info['completed']
         self.info['completed'] = value
-        self.write()
+        if old_value != value: self.write()
+
+
+    @property
+    def priority(self):
+        return self.info['priority']
+        
+    @priority.setter
+    def priority(self, value: int):
+        if value >= 3:
+            self.info['priority'] = 3
+        else:
+            old_value = self.info['priority']
+            self.info['priority'] = value
+        if old_value != value: self.write()
+
+
+    @property
+    def time(self):
+        return self.info['time']
+        
+    @time.setter
+    def time(self, value):
+        old_value = self.info['time']
+        self.info['time'] = value
+        if old_value != value: self.write()
 
     
     @property
@@ -134,8 +179,9 @@ class Task():
         
     @deleted.setter
     def deleted(self, value):
+        old_value = self.info['deleted']
         self.info['deleted'] = value
-        self.write()
+        if old_value != value: self.write()
             
 
     def done(self):
@@ -153,7 +199,7 @@ class Task():
     def delete(self):
         self.info['status'] = Task.DEL
         self.info['deleted'] = now()
-        self.write()
+        if old_value != value: self.write()
 
     def active(self):
         return self.info['status'] == Task.TODO

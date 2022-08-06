@@ -1,5 +1,6 @@
 from todo_utilities import filesIO, never, diff_dates, now
 from todo_utilities import decorate_class, debugger, logger
+import math
 
 template = {
     'name': 'template_project',
@@ -17,12 +18,23 @@ class Project():
     def __init__(self, name):
         self._name = name
         self.value = 0
-        self.info = self.read()
+        self.info = self.read() # All static attributes of the project 
         self.write()
 
         self.status = Project.DONE
-        self.urgency = diff_dates(self.info['due'], now())
+        self.urgency = 0
         self.importance = 0
+
+
+    def compute_urgency(self):
+        time_left = diff_dates(self.info['due'], now())
+        hours_per_day = (self.priority*2 + 0.5)
+        days_to_complete = self.time/hours_per_day
+
+        urgency = time_left//days_to_complete
+        urgency = 100//max(urgency, 1)
+
+        self.urgency = math.floor(urgency)
 
 
     @property
@@ -31,9 +43,10 @@ class Project():
         
     @name.setter
     def name(self, value):
+        old_value = self.name
         self._name = value
         self.info['name'] = value
-        self.write()       
+        if old_value != value: self.write()       
 
 
     @property
@@ -42,14 +55,42 @@ class Project():
         
     @due.setter
     def due(self, value):
+        old_value = self.info['due']
         self.info['due'] = value
-        self.write()
+        if old_value != value: self.write()
+
+    
+    @property
+    def priority(self):
+        return self.info['priority']
+
+    @priority.setter
+    def priority(self, value: int):
+        old_value = self.info['priority']
+        if value >= 3:
+            self.info['priority'] = 3
+        else:
+            self.info['priority'] = value
+        if old_value != value: self.write()
+
+
+    @property
+    def time(self):
+        return self.info['time']
+
+    @time.setter
+    def time(self, value):
+        old_value = self.info['time']
+        self.info['time'] = value
+        if old_value != value: self.write()
 
 
     def _newborn_info(self):
         return {
             'name': self._name,
-            'due': never()
+            'due': never(),
+            'priority': 0,
+            'time': 0
         }
 
     def __str__(self):

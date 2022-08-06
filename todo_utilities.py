@@ -25,11 +25,14 @@ def get_valid_description(message: str, initial_message=''):
         
     return message
 
-def now():
-    return datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")
+def now(date=False):
+    if date:
+        return datetime.now()
+    else:
+        return datetime.now().strftime(r"%Y-%m-%d")
 
 def never():
-    return "3998-12-31 07:05:00"
+    return "2998-12-31"
 
 def num2str(x):
     x = str(x)
@@ -41,34 +44,11 @@ def num2str(x):
     return '0'*z + x
 
 def diff_dates(d1, d2):
-    d1 = datetime.strptime(d1, r"%Y-%m-%d %H:%M:%S")
-    d2 = datetime.strptime(d2, r"%Y-%m-%d %H:%M:%S")
+    d1 = datetime.strptime(d1, r"%Y-%m-%d")
+    d2 = datetime.strptime(d2, r"%Y-%m-%d")
 
     return (d1 - d2).days
 
-def validate_date(date):
-        if date == 'never':
-            return never()
-        
-        try: 
-            date = datetime.strptime(date, r"%Y-%m-%d %H:%M:%S")
-            date = date.strftime(r"%Y-%m-%d %H:%M:%S")
-            if date < datetime.now(): fatal_error('date cannot be in the past')
-            return date
-        except: pass
-
-        try: 
-            date = datetime.strptime(date, r"%Y-%m-%d")
-            date = date.strftime(r"%Y-%m-%d %H:%M:%S")
-            if date < datetime.now(): fatal_error('date cannot be in the past')
-            return date
-        except: pass
-
-        try: 
-            date = datetime.strptime(date, r"%m-%d")
-            date = date.strftime(r"%Y-%m-%d %H:%M:%S")
-            if date < datetime.now(): fatal_error('date cannot be in the past')
-            return date
-        except: pass
-
-        fatal_error(f'invalid date {date}')
+def validate_date(date):        
+    if date < datetime.now(): fatal_error('date cannot be in the past')
+    fatal_error(f'invalid date {date}')

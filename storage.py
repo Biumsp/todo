@@ -1,3 +1,4 @@
+from datetime import time
 from todo_utilities import print, filesIO, GitWrapper, num2str, never
 from todo_utilities import fatal_error, get_valid_description
 from todo_utilities import decorate_class, debugger, logger, _c
@@ -21,6 +22,7 @@ class Storage():
 
         self.tasks = self._get_tasks()
         self.projects = self._get_projects()
+        self.refresh()
         
 
     def __init(self):
@@ -51,11 +53,6 @@ class Storage():
                     projects[-1].restore()
 
         return projects
-
-
-    def update(self):
-        # Compute the values of tasks and projects
-        pass
 
 
     def _project_lookup(self, name):
@@ -147,7 +144,7 @@ class Storage():
         self.git.commit(task.path, commit)
 
 
-    def add(self, projects, new_projects, description, after, before, due, commit):
+    def add(self, projects, new_projects, description, after, before, due, time, priority, commit):
 
         for i, p in enumerate(projects):
             projects[i] = self._project_lookup(p)
@@ -169,8 +166,13 @@ class Storage():
         task = Task(name)
 
         task.description = description
+        task.time = time
+        task.priority = priority
+
         self.add_projects_to_task(all_projects, task=task)
-        self.add_due_to_task(self._get_due(all_projects), task=task)
+        due = self._get_closest_due(all_projects, due)
+        self.add_due_to_task(due, task=task)
+
         self.add_following_to_task(after, task=task)
         self.add_followers_to_task(before, task=task)
 
@@ -184,6 +186,8 @@ class Storage():
 
         self.git.commit(task.path, commit)
         self.git.commit(self.projects_path, 'Update projects')
+
+        print(f'Created task {task.name}')
 
     
     def add_followers_to_task(self, followers, task_name=None, task=None, override=False):
@@ -235,11 +239,19 @@ class Storage():
         return [t for t in self.tasks if t.name == name][0]
 
        
-    def _get_due(self, projects_names):
+    def _get_closest_due(self, projects_names, task_due):
         projects = [Project(p) for p in projects_names]
-        projects.sort(key=lambda p: p.due)
+        due_dates = [p.due for p in projects] + [task_due]
+        due_dates.sort()
 
-        return projects[0].due if projects else never()
+        return due_dates[0]
+
+
+    def _get_highest_priority(self, projects_names, task_priority):
+        projects = [Project(p) for p in projects_names]
+        priorities = [p.priority for p in projects] + [task_priority]
+        return max(priorities)
+
 
     def __str__(self):
         return f'<Storage>'
@@ -291,27 +303,56 @@ class Storage():
 
         for task in self.tasks:
             task.importance = compute_task_importance(task, [])
+            for p in self.projects:
+                if p.name in task.projects: 
+                    p.importance += task.importance
+
+
+    def refresh(self):
+        for t in self.tasks:
+            if not t.active(): continue
+            t.due = self._get_closest_due(t.projects, t.due)
+            t.priority = self._get_highest_priority(t.projects, t.priority)
+
+        for p in self.projects:
+            time = 0
+            for t in self.tasks:
+                if t.active() and p.name in t.projects:
+                    time += t.time
+            p.time = time
+            p.compute_urgency()
 
 
     def active_tasks(self):
         return [t for t in self.tasks if t.active()]
 
+    def show(self, task_name):
+        t = self._get_task_by_name(task_name)
+
+        print('ID: {}\nI/U {}/{}\nstatus: {}\ncreated: {}completed: {}\n deleted: {}\ndue date: {}\n   {}'.format(
+            t.name, t.importance, t.urgency, t.created, t.completed, t.deleted, t.due, t.description.replace('\n', '\n   ')
+        ))
+
 
     def list(self, sort, projects, active, completed, deleted, limit, info, one_line):
         self.compute_importance()
 
-        if sort in ['importance', 'I'] or info: 
+        if sort in ['importance', 'I']: 
+            self.tasks.sort(key=lambda t: t.urgency, reverse=True)
             self.tasks.sort(key=lambda t: t.importance, reverse=True)
         else:
-            self.tasks.sort(key=lambda t: t.urgency)
+            self.tasks.sort(key=lambda t: t.importance, reverse=True)
+            self.tasks.sort(key=lambda t: t.urgency, reverse=True)
 
         tasks = []
         for t in self.tasks:
+            stop = False
             if t.deleted() and not deleted: continue
             if t.completed() and not completed: continue
             if t.active() and not active: continue
-            for p in projects:
-                if p not in t.projects: continue
+            for p in projects: 
+                if p not in t.projects: stop = True
+            if stop: continue
 
             tasks.append(t)
 
@@ -320,12 +361,12 @@ class Storage():
         output = []
         if info and one_line:
             if info > 2:
-                output.append((_c.orange + '{:^5} {:^19} {:4} {:^6} - {}' + _c.reset).format(
+                output.append((_c.orange + '{:^5} {:^10} {:4} {:^6} - {}' + _c.reset).format(
                     'ID', 'due-date', 'status', 'I/U', 'description'))
 
                 for t in tasks:
-                    output.append((_c.green + '{:5} {:19} {:^6} {:>2}/{:<3} - ' + _c.reset).format(
-                        t.name, t.due, t.status, t.importance, 100//max(t.urgency, 1)) + t.description.splitlines()[0])
+                    output.append((_c.green + '{:5} {:10} {:^6} {:>2}/{:<3} - ' + _c.reset).format(
+                        t.name, t.due, t.status, t.importance, t.urgency) + t.description.splitlines()[0])
 
             elif info == 2:
                 output.append((_c.orange + '{:^5} {:4} {:^6} - {}' + _c.reset).format(
@@ -333,7 +374,7 @@ class Storage():
 
                 for t in tasks:
                     output.append((_c.green + '{:5} {:^6} {:>2}/{:<3} - ' + _c.reset).format(
-                        t.name, t.status, t.importance, 100//max(t.urgency, 1)) + t.description.splitlines()[0])
+                        t.name, t.status, t.importance, t.urgency) + t.description.splitlines()[0])
 
             elif info == 1:
                 output.append((_c.orange + '{:^5} {:^6} - {}' + _c.reset).format(
@@ -341,29 +382,29 @@ class Storage():
 
                 for t in tasks:
                     output.append((_c.green + '{:5} {:>2}/{:<3} - ' + _c.reset).format(
-                        t.name, t.importance, 100//max(t.urgency, 1)) + t.description.splitlines()[0])
+                        t.name, t.importance, t.urgency) + t.description.splitlines()[0])
                     
 
         elif info and not one_line:
             if info > 2:
                 for t in tasks:
-                    out = (_c.orange + 'ID: {:5}\nstatus: {:^6}\ndue-date: {:19}\nI/U: {:>3}/{:<3}' + _c.reset).format(
-                        t.name, t.status, t.due, t.importance, 100//max(t.urgency, 1))
-                    out += '\n\t' + t.description.replace('\n', '\n\t')
+                    out = (_c.orange + 'ID: {:5}\nstatus: {:^6}\ndue-date: {:10}\nI/U: {:>3}/{:<3}' + _c.reset).format(
+                        t.name, t.status, t.due, t.importance, t.urgency)
+                    out += '\n   ' + t.description.replace('\n', '\n   ')
                     output.append(out)
 
             elif info == 2:
                 for t in tasks:
                     out = (_c.orange + 'ID: {:5}\nstatus: {:^6}\nI/U: {:>3}/{:<3}' + _c.reset).format(
-                        t.name, t.status, t.due, t.importance, 100//max(t.urgency, 1))
-                    out += '\n\t' + t.description.replace('\n', '\n\t')
+                        t.name, t.status, t.due, t.importance, t.urgency)
+                    out += '\n   ' + t.description.replace('\n', '\n   ')
                     output.append(out)
 
             elif info == 1:
                 for t in tasks:
                     out = (_c.orange + 'ID: {:5}\nI/U: {:>3}/{:<3}' + _c.reset).format(
-                        t.name, t.status, t.due, t.importance, 100//max(t.urgency, 1))
-                    out += '\n\t' + t.description.replace('\n', '\n\t')
+                        t.name, t.status, t.due, t.importance, t.urgency)
+                    out += '\n   ' + t.description.replace('\n', '\n   ')
                     output.append(out)
 
 
@@ -377,8 +418,8 @@ class Storage():
 
         elif not info and not one_line:
             for t in tasks:
-                out = ((_c.green + 'ID: {}\n\t' + _c.reset).format(t.name))
-                out += '\n\t' + t.description.replace('\n', '\n\t')
+                out = ((_c.green + 'ID: {}' + _c.reset).format(t.name))
+                out += '\n   ' + t.description.replace('\n', '\n   ')
                 output.append(out)
 
 
@@ -389,9 +430,11 @@ class Storage():
         self.compute_importance()
 
         if sort in ['importance', 'I']: 
+            self.projects.sort(key=lambda p: p.urgency, reverse=True)
             self.projects.sort(key=lambda p: p.importance, reverse=True)
         else:
-            self.projects.sort(key=lambda p: p.urgency)
+            self.projects.sort(key=lambda p: p.importance, reverse=True)
+            self.projects.sort(key=lambda p: p.urgency, reverse=True)
 
         projects = []
         for p in self.projects:
@@ -403,9 +446,11 @@ class Storage():
         if limit < len(projects): projects = projects[:limit]
 
         output = []
+        output.append((_c.orange + '{:6} {:10} {:^6} {}' + _c.reset).format(
+                'status', 'due-date', 'I/U', 'name'))
         for p in projects:
-            output.append((_c.green + '{:4} - {:19} - {:>2}/{:<3} ' + _c.reset + '{}').format(
-                p.status, p.due, p.importance, 100//max(p.urgency, 1), p.name))
+            output.append((_c.green + '{:6} {:10} {:>2}/{:<3} ' + _c.reset + '{}').format(
+                p.status, p.due, p.importance, p.urgency, p.name))
 
         print('\n'.join(output))
 
