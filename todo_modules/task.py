@@ -1,6 +1,6 @@
 import os, math
-from todo_utilities import filesIO, now, never, diff_dates
-from todo_utilities import decorate_class, debugger, logger
+from .utilities import filesIO, now, never, diff_dates
+from .utilities import decorate_class, debugger, logger
 
 class Task():
     TODO = 'todo'
@@ -20,11 +20,13 @@ class Task():
 
 
     def _get_urgency(self):
+        if not self.is_active(): return 0
+        
         time_left = diff_dates(self.info['due'], now())
         hours_per_day = (self.priority*2 + 0.5)
         days_to_complete = self.time/hours_per_day
 
-        urgency = time_left//days_to_complete
+        urgency = time_left - days_to_complete
         urgency = 100//max(urgency, 1)
 
         return math.floor(urgency)
@@ -142,7 +144,7 @@ class Task():
         return self.info['completed']
         
     @completed.setter
-    def completed(self, value):
+    def is_completed(self, value):
         old_value = self.info['completed']
         self.info['completed'] = value
         if old_value != value: self.write()
@@ -178,7 +180,7 @@ class Task():
         return self.info['deleted']
         
     @deleted.setter
-    def deleted(self, value):
+    def is_deleted(self, value):
         old_value = self.info['deleted']
         self.info['deleted'] = value
         if old_value != value: self.write()
@@ -199,15 +201,15 @@ class Task():
     def delete(self):
         self.info['status'] = Task.DEL
         self.info['deleted'] = now()
-        if old_value != value: self.write()
+        self.write()
 
-    def active(self):
+    def is_active(self):
         return self.info['status'] == Task.TODO
 
-    def completed(self):
+    def is_completed(self):
         return self.info['status'] == Task.DONE
 
-    def deleted(self):
+    def is_deleted(self):
         return self.info['deleted'] is not None
 
 #Task = decorate_class(Task, debugger(logger, 'Task'))

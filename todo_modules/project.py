@@ -1,5 +1,5 @@
-from todo_utilities import filesIO, never, diff_dates, now
-from todo_utilities import decorate_class, debugger, logger
+from .utilities import filesIO, never, diff_dates, now
+from .utilities import decorate_class, debugger, logger
 import math
 
 template = {
@@ -30,8 +30,8 @@ class Project():
         time_left = diff_dates(self.info['due'], now())
         hours_per_day = (self.priority*2 + 0.5)
         days_to_complete = self.time/hours_per_day
-
-        urgency = time_left//days_to_complete
+        
+        urgency = time_left-days_to_complete
         urgency = 100//max(urgency, 1)
 
         self.urgency = math.floor(urgency)
@@ -90,7 +90,7 @@ class Project():
             'name': self._name,
             'due': never(),
             'priority': 0,
-            'time': 0
+            'time': 1
         }
 
     def __str__(self):
@@ -125,10 +125,10 @@ class Project():
         self.status = Project.TODO
 
 
-    def active(self):
+    def is_active(self):
         return self.status == Project.TODO
 
-    def completed(self):
+    def is_completed(self):
         return self.status == Project.DONE
 
 #Project = decorate_class(Project, debugger(logger, 'Project'))

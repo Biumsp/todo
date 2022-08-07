@@ -1,9 +1,9 @@
 from datetime import time
-from todo_utilities import print, filesIO, GitWrapper, num2str, never
-from todo_utilities import fatal_error, get_valid_description
-from todo_utilities import decorate_class, debugger, logger, _c
-from task import Task
-from project import Project
+from .utilities import print, filesIO, GitWrapper, num2str, never
+from .utilities import fatal_error, get_valid_description
+from .utilities import decorate_class, debugger, logger, _c
+from .task import Task
+from .project import Project
 import os, re
 
 class LookupError(Exception): pass
@@ -269,6 +269,8 @@ class Storage():
         if not commit: commit = f'Mark task "{task_name}" as done'
         self.git.commit(task.path, commit)
 
+        print(f'Completed task {task.name}: {task.description.splitlines()[0]}')
+
     
     def restore(self, task_name, commit=None):
         task = self._get_task_by_name(task_name)
@@ -277,6 +279,8 @@ class Storage():
 
         if not commit: commit = f'Restore task "{task_name}"'
         self.git.commit(task.path, commit)
+
+        print(f'Restored task {task.name}: {task.description.splitlines()[0]}')
 
     
     def delete(self, task_name, commit=None):
@@ -287,11 +291,13 @@ class Storage():
         if not commit: commit = f'Delete task "{task_name}"'
         self.git.commit(task.path, commit)
 
+        print(f'Deleted task {task.name}: {task.description.splitlines()[0]}')
+
 
     def compute_importance(self):
         def compute_task_importance(task, visited):
             followers = [Task(t) for t in task.followers]
-            followers = [t for t in followers if t.active()]
+            followers = [t for t in followers if t.is_active()]
 
             tot = 1
             visited.append(task.name)
@@ -310,27 +316,38 @@ class Storage():
 
     def refresh(self):
         for t in self.tasks:
-            if not t.active(): continue
+            if not t.is_active(): continue
             t.due = self._get_closest_due(t.projects, t.due)
             t.priority = self._get_highest_priority(t.projects, t.priority)
 
         for p in self.projects:
             time = 0
             for t in self.tasks:
-                if t.active() and p.name in t.projects:
+                if t.is_active() and p.name in t.projects:
                     time += t.time
             p.time = time
             p.compute_urgency()
 
 
     def active_tasks(self):
-        return [t for t in self.tasks if t.active()]
+        return [t for t in self.tasks if t.is_active()]
+
 
     def show(self, task_name):
+        self.compute_importance()
         t = self._get_task_by_name(task_name)
 
-        print('ID: {}\nI/U {}/{}\nstatus: {}\ncreated: {}completed: {}\n deleted: {}\ndue date: {}\n   {}'.format(
-            t.name, t.importance, t.urgency, t.created, t.completed, t.deleted, t.due, t.description.replace('\n', '\n   ')
+        print('ID: {}\nI/U {}/{}\nstatus: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\ndue date: {}\ntime: {}\npriority: {}\n   {}'.format(
+            t.name,
+            t.importance, 
+            t.urgency, 
+            t.status, 
+            t.created, t.completed, 
+            t.deleted, 
+            t.due, 
+            t.time,
+            t.priority,
+            t.description.replace('\n', '\n   ')
         ))
 
 
@@ -347,11 +364,11 @@ class Storage():
         tasks = []
         for t in self.tasks:
             stop = False
-            if t.deleted() and not deleted: continue
-            if t.completed() and not completed: continue
-            if t.active() and not active: continue
+            if t.is_deleted() and not deleted: continue
+            if t.is_completed() and not completed: continue
+            if t.is_active() and not active: continue
             for p in projects: 
-                if p not in t.projects: stop = True
+                if self._project_lookup(p) not in t.projects: stop = True
             if stop: continue
 
             tasks.append(t)
@@ -438,8 +455,8 @@ class Storage():
 
         projects = []
         for p in self.projects:
-            if p.completed() and not completed: continue
-            if p.active() and not active: continue
+            if p.is_completed() and not completed: continue
+            if p.is_active() and not active: continue
 
             projects.append(p)
 

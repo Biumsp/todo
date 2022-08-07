@@ -1,7 +1,7 @@
-from todo_utilities import print, filesIO
-from todo_utilities import excludes, validate, never, now, fatal_error
-from todo_utilities import logger
-from storage import Storage
+from todo_modules.utilities import print, filesIO
+from todo_modules.utilities import excludes, validate, never, now, fatal_error
+from todo_modules.utilities import logger
+from todo_modules.storage import Storage
 import os, click, sys
 
 # CONFIG = filesIO.read(CONFIG, loads=True)
@@ -18,12 +18,18 @@ import os, click, sys
 MY_STATUS = os.getenv('MY_STATUS')
 HOME = os.path.expanduser('~')
 
+
 STORAGE_PATH = os.path.join(HOME, '.todo_storage')
 STORAGE_PATH = os.path.join(STORAGE_PATH, MY_STATUS)
 CONFIG = os.path.join(STORAGE_PATH, '.todo_config.json')
 
 storage = Storage(STORAGE_PATH)
-config = filesIO.read(CONFIG, loads=True)
+config = filesIO.read(CONFIG, loads=True, fail_silently=True)
+
+if config == 'failed':
+	DEFAULT_CONFIG = os.path.join(HOME, '.myconfig/todo/todo_config.json')
+	filesIO.copy(DEFAULT_CONFIG, CONFIG)
+	config = filesIO.read(CONFIG, loads=True)
 
 DEFAULT_SORT = config['default_sort']
 DEFAULT_INFO = config['default_info']
