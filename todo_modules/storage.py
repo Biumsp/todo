@@ -1,5 +1,5 @@
 from datetime import time
-from .utilities import print, filesIO, GitWrapper, num2str, never
+from .utilities import print, filesIO, GitWrapper, num2str, now
 from .utilities import fatal_error, get_valid_description
 from .utilities import decorate_class, debugger, logger, _c
 from .task import Task
@@ -31,6 +31,17 @@ class Storage():
 
         if not os.path.isfile(self.projects_path):
             filesIO.write(self.projects_path, {}, dumps=True)
+
+    
+    def _validate_date(self, date):
+        today = now(date=True)
+        if date.year == 1900: 
+            date = date.replace(year=today.year)
+            if date < now(date=True): 
+                date = date.replace(year=today.year+1)
+
+        if date < now(date=True): fatal_error('date cannot be in the past')
+        return date.strftime(r"%Y-%m-%d")
 
 
     def _get_tasks(self):
@@ -67,6 +78,11 @@ class Storage():
             fatal_error(f'no project named "{name}"')
         
         return matches[0].name
+
+    
+    def _get_project_by_name(self, project_name):
+        project_name = self._project_lookup(project_name)
+        return [p for p in self.projects if p.name == project_name][0]
 
     
     def _task_lookup(self, name):
@@ -107,8 +123,9 @@ class Storage():
 
     def edit(self, name, projects, new_projects, after, before, due, override, commit):
         task = self._get_task_by_name(name)
+        if due is not None: due = self._validate_date(due)
 
-        if not any([projects, new_projects, after, before, due, override]):
+        if not any([projects, new_projects, after, before, due]):
             task.description = get_valid_description(None, task.description)
 
         for i, p in enumerate(projects):
@@ -143,8 +160,33 @@ class Storage():
         if not commit: commit = f'Edit task "{name}"'
         self.git.commit(task.path, commit)
 
+        print(f'Edited task {task.name}: {task.description.splitlines()[0]}')
+
+
+    def _replace_project_in_tasks(self, old_name, new_name):
+        for t in self.tasks:
+            if old_name in t.projects:
+                t.projects = [p if p != old_name else new_name for p in t.projects]
+
+    
+    def edit_project(self, project_name, after, before, name, due, override, commit):
+        project = self._get_project_by_name(project_name)
+        if due is not None: due = self._validate_date(due)
+
+        if due: project.due = due
+        if name: 
+            old_name = project.name
+            project.name = name
+            self._replace_project_in_tasks(old_name, name)
+
+        if not commit: commit = f'Edit project "{project.name}"'
+        self.git.commit(self.projects_path, commit)
+
+        print(f'Edited project {old_name if name else project.name}')
+
 
     def add(self, projects, new_projects, description, after, before, due, time, priority, commit):
+        if due is not None: due = self._validate_date(due)
 
         for i, p in enumerate(projects):
             projects[i] = self._project_lookup(p)
@@ -308,10 +350,11 @@ class Storage():
             return tot
 
         for task in self.tasks:
+            if not task.is_active(): continue
             task.importance = compute_task_importance(task, [])
             for p in self.projects:
                 if p.name in task.projects: 
-                    p.importance += task.importance
+                    p.importance += 1
 
 
     def refresh(self):
