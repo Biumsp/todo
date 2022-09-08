@@ -49,45 +49,58 @@ DEFAULT_LIMIT = config['default_limit']
 @click.option('--one-line / --multi-line', '-o / -O', is_flag=True, default=DEFAULT_ONELINE, help='Short output')
 def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
 		project, active, completed, deleted, limit, no_limit, info, one_line):
-	'''Manage all your tasks'''
+	'''See all your tasks'''
 
 	# Validate input
 	validate(excludes(logging_debug, logging_info), 'can only set one info level')
 
+	# Manipulate input
 	project = list(set(project))
 	if no_limit: limit = 10000
 
-	# Set logging state
+	# Set logging options
 	if logging_debug: logger.set_state_debug()
 	elif logging_info: logger.set_state_info()    
-
 	if logging_io: logger.activate_IO()
 	if indent: print.auto_indent()
 
+	# List the task, if no sub-command is specified
 	if ctx.invoked_subcommand is None:
 		storage.list(sort, project, active, completed, deleted, limit, info, one_line)
 
 
 @cli.command(no_args_is_help=True)
 @click.option('--project', '-p', multiple=True, help='Project the task belongs to')
-@click.option('--new-project', '-n', multiple=True, help='Create new project')
 @click.option('--description', '-d', type=str, help='Task description')
 @click.option('--after', '-a', multiple=True, help='The tasks it depends on')
 @click.option('--before', '-b', multiple=True, help='The tasks depending on this task')
-@click.option('--due', '-due', default=never(), type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
 @click.option('--time', '-t', default=1, help='Estimated time to complete the task')
-@click.option('--priority', '-P', count=True, help='Set priority level')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def add(project, new_project, description, after, before, due, time, priority, commit):
+def add(project, description, after, before, time, commit):
 	'''Add a new task'''
 
-	# Validate input
-	project 	 = list(set(project))
-	new_project  = list(set(new_project))
-	after 		 = list(set(after))
-	before 		 = list(set(before))
+	# Manipulate input
+	after    = list(set(after))
+	before 	 = list(set(before))
 
-	storage.add(project, new_project, description, after, before, due, time, priority, commit)
+	storage.add(project, description, after, before, time, commit)
+
+
+@cli.command()
+@click.option('--project', '-p', multiple=True, help='Project name')
+@click.option('--due', '-due', default=never(), type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
+@click.option('--priority', '-P', count=True, help='Set priority level')
+@click.option('--after', '-a', multiple=True, help='The tasks it depends on')
+@click.option('--before', '-b', multiple=True, help='The tasks depending on this task')
+@click.option('--git', '-g', 'commit', type=str, help='Git commit message')
+def new_project(project, due, priority, after, before, commit):
+	'''Create a new project'''
+
+	# Manipulate input
+	after 	= list(set(after))
+	before 	= list(set(before))
+
+	storage.new_project(project, due, after, before, priority, commit)
 
 
 @cli.command()
@@ -147,12 +160,13 @@ def edit(task_id, project, new_project, after, before, due, delete_due, override
 	'''Edit a task'''
 	
 	# Validate input
+	validate(excludes(delete_due, due), 'cannot modify and delete the due-date at the same time')
+
+	# Manipulate input
 	project 	 = list(set(project))
 	new_project  = list(set(new_project))
 	after 		 = list(set(after))
 	before 		 = list(set(before))
-
-	validate(excludes(delete_due, due), 'cannot modify and delete the due-date at the same time')
 	if delete_due: due = never()
 
 	# Check exclusions
@@ -181,10 +195,11 @@ def edit_project(project, after, before, name, due, delete_due, override, commit
 	'''Edit a project'''
 	
 	# Validate input
+	validate(excludes(delete_due, due), 'cannot modify and delete the due-date at the same time')
+
+	# Manipulate input
 	after  = list(set(after))
 	before = list(set(before))
-
-	validate(excludes(delete_due, due), 'cannot modify and delete the due-date at the same time')
 	if delete_due: due = never()
 
 	# Check exclusions
@@ -201,6 +216,14 @@ def show(task_id):
 	'''Show all info about the task'''
 
 	storage.show(task_id)
+
+
+@cli.command(no_args_is_help=True)
+@click.argument('--project', '-p', type=str, required=True)
+def show_project(project):
+	'''Show all info about the project'''
+
+	storage.show_project(project)
 
 
 @cli.command()

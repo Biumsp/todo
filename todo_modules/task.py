@@ -38,13 +38,14 @@ class Task():
             'status': Task.TODO,
             'following': [],
             'followers': [],
+            'main_project': None,
+            'secondary_projects': [],
             'projects': [],
             'time': 1,
             'priority': 0,
-            'due': never(),
             'created': now(),
             'completed': None,
-            'deleted': None,
+            'deleted': None
         }
 
 
@@ -66,17 +67,6 @@ class Task():
 
     def write(self):
         filesIO.write(self.path, self.info, dumps=True)
-
-
-    @property
-    def description(self):
-        return self.info['description']
-        
-    @description.setter
-    def description(self, value):
-        old_value = self.info['description']
-        self.info['description'] = value
-        if old_value != value: self.write()
 
 
     @property
@@ -107,13 +97,42 @@ class Task():
 
     
     @property
+    def description(self):
+        return self.info['description']
+        
+    @description.setter
+    def description(self, value):
+        old_value = self.info['description']
+        self.info['description'] = value
+        if old_value != value: self.write()
+
+
+    @property
+    def main_project(self):
+        return self.info['description']
+        
+    @main_project.setter
+    def main_project(self, value):
+        old_value = self.info['main_project']
+        self.info['main_project'] = value
+        self.info['projects'] = self.info['secondary_projects'] + [value]
+        if old_value != value: self.write()
+
+
+    @property
     def projects(self):
         return self.info['projects']
+
+
+    @property
+    def secondary_projects(self):
+        return self.info['secondary_projects']
         
-    @projects.setter
-    def projects(self, value):
-        old_value = self.info['projects']
-        self.info['projects'] = value
+    @secondary_projects.setter
+    def secondary_projects(self, value):
+        old_value = self.info['secondary_projects']
+        self.info['secondary_projects'] = value
+        self.info['projects'] = [self.info['main_project']] + value
         if old_value != value: self.write()
 
 
@@ -151,20 +170,6 @@ class Task():
 
 
     @property
-    def priority(self):
-        return self.info['priority']
-        
-    @priority.setter
-    def priority(self, value: int):
-        if value >= 3:
-            self.info['priority'] = 3
-        else:
-            old_value = self.info['priority']
-            self.info['priority'] = value
-        if old_value != value: self.write()
-
-
-    @property
     def time(self):
         return self.info['time']
         
@@ -198,16 +203,20 @@ class Task():
         self.info['deleted'] = None
         self.write()   
 
+
     def delete(self):
         self.info['status'] = Task.DEL
         self.info['deleted'] = now()
         self.write()
 
+
     def is_active(self):
         return self.info['status'] == Task.TODO
 
+
     def is_completed(self):
         return self.info['status'] == Task.DONE
+        
 
     def is_deleted(self):
         return self.info['deleted'] is not None

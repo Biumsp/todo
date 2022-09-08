@@ -11,7 +11,7 @@ class NameError(Exception): pass
 
 class Storage():
 
-    def __init__(self, path=os.path.expanduser('~/.todo_storage')):
+    def __init__(self, path):
         self.path = path
         self.projects_path = os.path.join(self.path, '.projects')
         self.__init()
@@ -185,22 +185,16 @@ class Storage():
         print(f'Edited project {old_name if name else project.name}')
 
 
-    def add(self, projects, new_projects, description, after, before, due, time, priority, commit):
+    def add(self, project, description, after, before, time, commit):
         if due is not None: due = self._validate_date(due)
 
-        for i, p in enumerate(projects):
-            projects[i] = self._project_lookup(p)
-        
-        for i, p in enumerate(new_projects):
-            self.validate_project_name(p)
+        project = self._project_lookup(project)
 
         for i, t in enumerate(after):
             after[i] = self._task_lookup(t)
 
         for i, t in enumerate(before):
             before[i] = self._task_lookup(t)
-            
-        all_projects = projects + new_projects
 
         description = get_valid_description(description)
 
@@ -209,30 +203,22 @@ class Storage():
 
         task.description = description
         task.time = time
-        task.priority = priority
 
-        self.add_projects_to_task(all_projects, task=task)
-        due = self._get_closest_due(all_projects, due)
-        self.add_due_to_task(due, task=task)
+        task.main_project = project.name
 
         self.add_following_to_task(after, task=task)
         self.add_followers_to_task(before, task=task)
-
-        for t in after:
-            self.add_followers_to_task([task.name], task_name=t)
-
-        for t in before:
-            self.add_following_to_task([task.name], task_name=t)
         
-        if not commit: commit = f'Add task "{name}"'
+        if not commit: commit = f'Create task "{name}"'
 
+        self.refresh()
         self.git.commit(task.path, commit)
-        self.git.commit(self.projects_path, 'Update projects')
-
         print(f'Created task {task.name}')
 
     
     def add_followers_to_task(self, followers, task_name=None, task=None, override=False):
+        assert task or task_name
+        
         if task is None:task = self._get_task_by_name(task_name)
         followers = set(followers)        
 
@@ -243,6 +229,8 @@ class Storage():
 
 
     def add_following_to_task(self, following, task_name=None, task=None, override=False):
+        assert task or task_name
+        
         if task is None:task = self._get_task_by_name(task_name)
         following = set(following)        
 
@@ -253,6 +241,8 @@ class Storage():
             
 
     def add_projects_to_task(self, projects_names, task_name=None, task=None, override=False):
+        assert task or task_name
+        
         if task is None:task = self._get_task_by_name(task_name)
         projects_names = set(projects_names)        
 
@@ -281,9 +271,9 @@ class Storage():
         return [t for t in self.tasks if t.name == name][0]
 
        
-    def _get_closest_due(self, projects_names, task_due):
-        projects = [Project(p) for p in projects_names]
-        due_dates = [p.due for p in projects] + [task_due]
+    def _get_closest_due(self, projects_names):
+        projects  = [Project(p) for p in projects_names]
+        due_dates = [p.due for p in projects]
         due_dates.sort()
 
         return due_dates[0]

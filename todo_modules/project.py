@@ -2,11 +2,6 @@ from .utilities import filesIO, never, diff_dates, now
 from .utilities import decorate_class, debugger, logger
 import math
 
-template = {
-    'name': 'template_project',
-    'due': None,
-    'value': 0
-}
 
 class Project():
     path = ''
@@ -75,23 +70,48 @@ class Project():
 
 
     @property
-    def time(self):
-        return self.info['time']
+    def following(self):
+        return self.info['following']
+        
+    @following.setter
+    def following(self, value):
+        old_value = self.info['following']
+        self.info['following'] = value
+        if old_value != value: self.write()
 
-    @time.setter
-    def time(self, value):
-        old_value = self.info['time']
-        self.info['time'] = value
+
+    @property
+    def followers(self):
+        return self.info['followers']
+        
+    @followers.setter
+    def followers(self, value):
+        old_value = self.info['followers']
+        self.info['followers'] = value
+        if old_value != value: self.write()
+
+
+    @property
+    def importance(self):
+        return self.info['importance']
+
+    @importance.setter
+    def importance(self, value: int):
+        old_value = self.info['importance']
+        self.info['importance'] = value
         if old_value != value: self.write()
 
 
     def _newborn_info(self):
         return {
-            'name': self._name,
-            'due': never(),
+            'name': 'template_project',
+            'followers': [],
+            'following': [],
+            'importance': 0,
             'priority': 0,
-            'time': 1
+            'due': never(),
         }
+
 
     def __str__(self):
         return f'<Project {self._name}>'
@@ -127,6 +147,7 @@ class Project():
 
     def is_active(self):
         return self.status == Project.TODO
+        
 
     def is_completed(self):
         return self.status == Project.DONE
