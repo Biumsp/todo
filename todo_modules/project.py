@@ -12,19 +12,7 @@ class Project():
         self.info = self.read() # All static attributes of the project 
         self.write()
 
-        self.urgency = 0
         self.importance = 0
-
-
-    def compute_urgency(self):
-        time_left = diff_dates(self.info['due'], now())
-        hours_per_day = (self.priority*2 + 0.5)
-        days_to_complete = self.time/hours_per_day
-        
-        urgency = time_left-days_to_complete
-        urgency = 100//max(urgency, 1)
-
-        self.urgency = math.floor(urgency)
 
 
     @property

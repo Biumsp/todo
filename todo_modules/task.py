@@ -15,8 +15,9 @@ class Task():
         self.path = os.path.join(Task.storage.path, name + '.task')
         self.info = self.read() # All static attributes of the task
         
-        self.urgency = self._get_urgency()
+        self.urgency    = 0
         self.importance = 0
+        self.priority   = 0
 
 
     def _get_urgency(self):

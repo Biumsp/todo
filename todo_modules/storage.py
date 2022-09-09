@@ -294,10 +294,12 @@ class Storage():
         return due_dates[0]
 
 
-    def _get_highest_priority(self, projects_names, task_priority):
+    def _get_average_priority(self, projects_names):
         projects = [Project(p) for p in projects_names]
-        priorities = [p.priority for p in projects] + [task_priority]
-        return max(priorities)
+        p = [p.priority for p in projects]
+        wp = [x.priority**2 for x in p]
+
+        return sum(wp)/sum(p)
 
 
     def __str__(self):
@@ -342,39 +344,58 @@ class Storage():
 
 
     def compute_importance(self):
-        def compute_task_importance(task, visited):
+        def compute_task_importance(task, tasks, visited):
             followers = [Task(t) for t in task.followers]
-            followers = [t for t in followers if t.is_active()]
-
+            followers = set(followers).intersection(tasks)
+            
             tot = 1
             visited.append(task.name)
             for t in followers:
                 if not t.name in visited:
-                    tot += compute_task_importance(t, visited)
+                    tot += compute_task_importance(t, tasks, visited)
             
             return tot
 
-        for task in self.tasks:
-            if not task.is_active(): continue
-            task.importance = compute_task_importance(task, [])
-            for p in self.projects:
-                if p.name in task.projects: 
-                    p.importance += 1
+        for project in self.projects:
+            tasks = [t for t in self.tasks if project.name in t.projects and t.is_active()]
+            imp = []
+
+            for task in tasks:
+                imp.append(compute_task_importance(task, set(tasks), []))
+            
+            imp = [i/sum(imp)*project.importance for i in imp]
+            for t, i in zip(tasks, imp): t.importance += i
 
 
     def refresh(self):
+
+        for _ in range(4):
+            for t in self.tasks:
+                if not t.is_active(): continue
+
+                following_tasks = [self._get_task_by_name(name) for name in t.following]
+                for ft in following_tasks:
+                    if not ft.is_active(): continue
+                    if t.name not in ft.followers: ft.followers = ft.followers.append(t.name)
+
+                sp = set(t.projects)
+                followers_tasks = [self._get_task_by_name(name) for name in t.followers]
+                for ft in followers_tasks:
+                    if not ft.is_active(): continue
+                    if t.name not in ft.following: ft.following = ft.following.append(t.name)
+                    sp = sp.union(set(ft.projects))
+                
+                sp.remove(t.main_project)
+                t.secondary_projects = list(sp)
+
+
         for t in self.tasks:
             if not t.is_active(): continue
-            t.due = self._get_closest_due(t.projects, t.due)
-            t.priority = self._get_highest_priority(t.projects, t.priority)
-
-        for p in self.projects:
-            time = 0
-            for t in self.tasks:
-                if t.is_active() and p.name in t.projects:
-                    time += t.time
-            p.time = time
-            p.compute_urgency()
+            t.due = self._get_closest_due(t.projects)
+            t.priority = self._get_average_priority(t.projects)
+            t.urgency = t._get_urgency()
+        
+        self.compute_importance()
 
 
     def active_tasks(self):
@@ -382,7 +403,6 @@ class Storage():
 
 
     def show(self, task_name):
-        self.compute_importance()
         t = self._get_task_by_name(task_name)
 
         print('ID: {}\nI/U {}/{}\nstatus: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\ndue date: {}\ntime: {}\npriority: {}\n   {}'.format(
@@ -400,7 +420,6 @@ class Storage():
 
 
     def list(self, sort, projects, active, completed, deleted, limit, info, one_line):
-        self.compute_importance()
 
         if sort in ['importance', 'I']: 
             self.tasks.sort(key=lambda t: t.urgency, reverse=True)
@@ -492,7 +511,6 @@ class Storage():
 
 
     def list_projects(self, sort, limit, active, completed):
-        self.compute_importance()
 
         if sort in ['importance', 'I']: 
             self.projects.sort(key=lambda p: p.urgency, reverse=True)
