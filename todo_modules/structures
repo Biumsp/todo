@@ -1,0 +1,37 @@
+# tasks.meta
+
+status time
+status time
+status time
+....
+
+# Projects.meta
+
+name due importance priority
+name due importance priority
+....
+
+# projects_tasks
+
+0 1 0 0 1 0 1 1
+0 2 2 0 1 2 0 0
+1 0 1 1 0 2 0 1
+0 1 2 2 1 0 0 0
+....
+
+# followers_projects
+
+0 1 0 0 1 1 0 1
+0 0 0 1 1 0 1 1 
+0 0 0 0 1 0 0 0
+....
+
+# followers_tasks
+
+0 1 0 0 1 1 0 1
+0 0 0 1 1 0 1 1 
+0 0 0 0 1 0 0 0
+....
+
+# config
+json file

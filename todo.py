@@ -1,3 +1,4 @@
+from email.policy import default
 from todo_modules.utilities import print, filesIO
 from todo_modules.utilities import excludes, validate, never, now, fatal_error
 from todo_modules.utilities import logger
@@ -39,7 +40,7 @@ DEFAULT_LIMIT = config['default_limit']
 @click.option('--logging-io', is_flag=True, help='Activate I/O logging', hidden=True)
 @click.option('--indent', is_flag=True, help='Nested indentation', hidden=True)
 @click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I']), help='Order by')
-@click.option('--project', '-p', multiple=True, help='Project to filter by')
+@click.option('--project', '-p', multiple=True, help='Projects to filter by')
 @click.option('--info', '-i', default=DEFAULT_INFO, count=True, help='Show info')
 @click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active tasks')
 @click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed tasks')
@@ -55,7 +56,7 @@ def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
 	validate(excludes(logging_debug, logging_info), 'can only set one info level')
 
 	# Manipulate input
-	project = list(set(project))
+	projects = list(set(project))
 	if no_limit: limit = 10000
 
 	# Set logging options
@@ -66,7 +67,7 @@ def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
 
 	# List the task, if no sub-command is specified
 	if ctx.invoked_subcommand is None:
-		storage.list(sort, project, active, completed, deleted, limit, info, one_line)
+		storage.list(sort, projects, active, completed, deleted, limit, info, one_line)
 
 
 @cli.command(no_args_is_help=True)
@@ -89,18 +90,13 @@ def add(project, description, after, before, time, commit):
 @cli.command()
 @click.option('--project', '-p', multiple=True, help='Project name')
 @click.option('--due', '-due', default=never(), type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
-@click.option('--priority', '-P', count=True, help='Set priority level')
-@click.option('--after', '-a', multiple=True, help='The tasks it depends on')
-@click.option('--before', '-b', multiple=True, help='The tasks depending on this task')
+@click.option('--priority', '-P', count=True, help='Priority level')
+@click.option('--importance', '-I', default=10, show_default=True, help='Project relative importance')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def new_project(project, due, priority, after, before, commit):
+def new_project(project, due, priority, importance, commit):
 	'''Create a new project'''
 
-	# Manipulate input
-	after 	= list(set(after))
-	before 	= list(set(before))
-
-	storage.new_project(project, due, after, before, priority, commit)
+	storage.new_project(project, due, priority, importance, commit)
 
 
 @cli.command()
@@ -185,29 +181,24 @@ def edit(task_id, project, new_project, after, before, due, delete_due, override
 @cli.command(no_args_is_help=True)
 @click.argument('project', type=str, required=True)
 @click.option('--name', '-n', type=str, help='Change the project name')
-@click.option('--after', '-a', multiple=True, help='The projects it depends on')
-@click.option('--before', '-b', multiple=True, help='The projects depending on this task')
 @click.option('--due', '-due', default=None, type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
 @click.option('--delete-due', '-D', is_flag=True, help='Due date')
-@click.option('--override', '-O', is_flag=True, help='Override existing info')
+@click.option('--priority', '-P', count=True, help='Priority level')
+@click.option('--importance', '-I', default=10, show_default=True, help='Project relative importance')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def edit_project(project, after, before, name, due, delete_due, override, commit):
+def edit_project(project, after, before, name, due, delete_due, priority, importance, commit):
 	'''Edit a project'''
 	
 	# Validate input
 	validate(excludes(delete_due, due), 'cannot modify and delete the due-date at the same time')
 
 	# Manipulate input
-	after  = list(set(after))
-	before = list(set(before))
 	if delete_due: due = never()
 
 	# Check exclusions
-	validate(excludes(due, after), 'cannot modify precedence and due-date at the same time')
-	validate(excludes(due, before), 'cannot modify precedence and due-date at the same time')
-	validate(any([after, before, due, name]), 'choose at least one option')
+	validate(any([priority, importance, due, name]), 'choose at least one option')
 
-	storage.edit_project(project, after, before, name, due, override, commit)
+	storage.edit_project(project, name, due, priority, importance, commit)
 
 
 @cli.command(no_args_is_help=True)

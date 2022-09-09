@@ -121,6 +121,21 @@ class Storage():
         else:
             return '0000'
 
+
+    def new_project(self, name, due, priority, importance, commit):
+        self.validate_project_name(name)
+
+        project = Project(name)
+        project.due = self._validate_date(due)
+        project.priority = priority
+        project.importance = int(importance)
+
+        if not commit: commit = f'Create project "{name}"'
+        self.git.commit(project.path, commit)
+
+        print(f'Created project {name}')
+
+
     def edit(self, name, projects, new_projects, after, before, due, override, commit):
         task = self._get_task_by_name(name)
         if due is not None: due = self._validate_date(due)
@@ -169,7 +184,7 @@ class Storage():
                 t.projects = [p if p != old_name else new_name for p in t.projects]
 
     
-    def edit_project(self, project_name, after, before, name, due, override, commit):
+    def edit_project(self, project_name, name, due, priority, importance, commit):
         project = self._get_project_by_name(project_name)
         if due is not None: due = self._validate_date(due)
 
@@ -394,6 +409,7 @@ class Storage():
             self.tasks.sort(key=lambda t: t.importance, reverse=True)
             self.tasks.sort(key=lambda t: t.urgency, reverse=True)
 
+        projects = [self._project_lookup(p) for p in projects]
         tasks = []
         for t in self.tasks:
             stop = False
@@ -401,37 +417,36 @@ class Storage():
             if t.is_completed() and not completed: continue
             if t.is_active() and not active: continue
             for p in projects: 
-                if self._project_lookup(p) not in t.projects: stop = True
+                if p not in t.projects: stop = True
             if stop: continue
 
             tasks.append(t)
 
         if limit < len(tasks): tasks = tasks[:limit]
 
-        output = []
         if info and one_line:
             if info > 2:
-                output.append((_c.orange + '{:^5} {:^10} {:4} {:^6} - {}' + _c.reset).format(
+                print.add((_c.orange + '{:^5} {:^10} {:4} {:^6} - {}' + _c.reset).format(
                     'ID', 'due-date', 'status', 'I/U', 'description'))
 
                 for t in tasks:
-                    output.append((_c.green + '{:5} {:10} {:^6} {:>2}/{:<3} - ' + _c.reset).format(
+                    print.add((_c.green + '{:5} {:10} {:^6} {:>2}/{:<3} - ' + _c.reset).format(
                         t.name, t.due, t.status, t.importance, t.urgency) + t.description.splitlines()[0])
 
             elif info == 2:
-                output.append((_c.orange + '{:^5} {:4} {:^6} - {}' + _c.reset).format(
+                print.add((_c.orange + '{:^5} {:4} {:^6} - {}' + _c.reset).format(
                     'ID', 'status', 'I/U', 'description'))
 
                 for t in tasks:
-                    output.append((_c.green + '{:5} {:^6} {:>2}/{:<3} - ' + _c.reset).format(
+                    print.add((_c.green + '{:5} {:^6} {:>2}/{:<3} - ' + _c.reset).format(
                         t.name, t.status, t.importance, t.urgency) + t.description.splitlines()[0])
 
             elif info == 1:
-                output.append((_c.orange + '{:^5} {:^6} - {}' + _c.reset).format(
+                print.add((_c.orange + '{:^5} {:^6} - {}' + _c.reset).format(
                     'ID', 'I/U', 'description'))
 
                 for t in tasks:
-                    output.append((_c.green + '{:5} {:>2}/{:<3} - ' + _c.reset).format(
+                    print.add((_c.green + '{:5} {:>2}/{:<3} - ' + _c.reset).format(
                         t.name, t.importance, t.urgency) + t.description.splitlines()[0])
                     
 
@@ -441,39 +456,39 @@ class Storage():
                     out = (_c.orange + 'ID: {:5}\nstatus: {:^6}\ndue-date: {:10}\nI/U: {:>3}/{:<3}' + _c.reset).format(
                         t.name, t.status, t.due, t.importance, t.urgency)
                     out += '\n   ' + t.description.replace('\n', '\n   ')
-                    output.append(out)
+                    print.add(out)
 
             elif info == 2:
                 for t in tasks:
                     out = (_c.orange + 'ID: {:5}\nstatus: {:^6}\nI/U: {:>3}/{:<3}' + _c.reset).format(
                         t.name, t.status, t.due, t.importance, t.urgency)
                     out += '\n   ' + t.description.replace('\n', '\n   ')
-                    output.append(out)
+                    print.add(out)
 
             elif info == 1:
                 for t in tasks:
                     out = (_c.orange + 'ID: {:5}\nI/U: {:>3}/{:<3}' + _c.reset).format(
                         t.name, t.status, t.due, t.importance, t.urgency)
                     out += '\n   ' + t.description.replace('\n', '\n   ')
-                    output.append(out)
+                    print.add(out)
 
 
         elif not info and one_line:
-            output.append(_c.orange + '  ID  - description' + _c.reset)
+            print.add(_c.orange + '  ID  - description' + _c.reset)
             for t in tasks:
                 out = (_c.green + '{:5} - ' + _c.reset).format(
                     t.name) + t.description.splitlines()[0] 
-                output.append(out)
+                print.add(out)
 
 
         elif not info and not one_line:
             for t in tasks:
                 out = ((_c.green + 'ID: {}' + _c.reset).format(t.name))
                 out += '\n   ' + t.description.replace('\n', '\n   ')
-                output.append(out)
+                print.add(out)
 
 
-        print('\n'.join(output))
+        print.empty()
 
 
     def list_projects(self, sort, limit, active, completed):
@@ -495,13 +510,12 @@ class Storage():
 
         if limit < len(projects): projects = projects[:limit]
 
-        output = []
-        output.append((_c.orange + '{:6} {:10} {:^6} {}' + _c.reset).format(
+        print.add((_c.orange + '{:6} {:10} {:^6} {}' + _c.reset).format(
                 'status', 'due-date', 'I/U', 'name'))
         for p in projects:
-            output.append((_c.green + '{:6} {:10} {:>2}/{:<3} ' + _c.reset + '{}').format(
+            print.add((_c.green + '{:6} {:10} {:>2}/{:<3} ' + _c.reset + '{}').format(
                 p.status, p.due, p.importance, p.urgency, p.name))
 
-        print('\n'.join(output))
+        print.empty()
 
 #Storage = decorate_class(Storage, debugger(logger, 'Storage'))

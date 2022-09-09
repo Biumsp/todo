@@ -6,17 +6,12 @@ import math
 class Project():
     path = ''
 
-    DONE = 'done'
-    TODO = 'todo'
-    DEL = 'del'
-
     def __init__(self, name):
         self._name = name
         self.value = 0
         self.info = self.read() # All static attributes of the project 
         self.write()
 
-        self.status = Project.DONE
         self.urgency = 0
         self.importance = 0
 
@@ -70,28 +65,6 @@ class Project():
 
 
     @property
-    def following(self):
-        return self.info['following']
-        
-    @following.setter
-    def following(self, value):
-        old_value = self.info['following']
-        self.info['following'] = value
-        if old_value != value: self.write()
-
-
-    @property
-    def followers(self):
-        return self.info['followers']
-        
-    @followers.setter
-    def followers(self, value):
-        old_value = self.info['followers']
-        self.info['followers'] = value
-        if old_value != value: self.write()
-
-
-    @property
     def importance(self):
         return self.info['importance']
 
@@ -104,9 +77,7 @@ class Project():
 
     def _newborn_info(self):
         return {
-            'name': 'template_project',
-            'followers': [],
-            'following': [],
+            'name': self._name,
             'importance': 0,
             'priority': 0,
             'due': never(),
@@ -140,16 +111,5 @@ class Project():
 
         filesIO.write(Project.path, projects, dumps=True)
 
-    
-    def restore(self):
-        self.status = Project.TODO
-
-
-    def is_active(self):
-        return self.status == Project.TODO
-        
-
-    def is_completed(self):
-        return self.status == Project.DONE
 
 #Project = decorate_class(Project, debugger(logger, 'Project'))
