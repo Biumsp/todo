@@ -5,10 +5,10 @@ from todo_modules.utilities import logger
 from todo_modules.storage import Storage
 import os, click, sys
 
-# logger.set_state_debug()
-# logger.activate_IO()
-# print.auto_indent()
-# print.lines_step()
+logger.set_state_debug()
+logger.activate_IO()
+print.auto_indent()
+print.lines_step()
 
 # Read configurations
 MY_STATUS = os.getenv('MY_STATUS')
@@ -88,15 +88,15 @@ def add(project, description, after, before, time, commit):
 
 
 @cli.command()
-@click.option('--project', '-p', multiple=True, help='Project name')
+@click.argument('name')
 @click.option('--due', '-due', default=never(), type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
 @click.option('--priority', '-P', count=True, help='Priority level')
 @click.option('--importance', '-I', default=10, show_default=True, help='Project relative importance')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def new_project(project, due, priority, importance, commit):
+def new_project(name, due, priority, importance, commit):
 	'''Create a new project'''
 
-	storage.new_project(project, due, priority, importance, commit)
+	storage.new_project(name, due, priority, importance, commit)
 
 
 @cli.command()

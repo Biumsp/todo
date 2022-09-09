@@ -533,4 +533,4 @@ class Storage():
 
         print.empty()
 
-#Storage = decorate_class(Storage, debugger(logger, 'Storage'))
+Storage = decorate_class(Storage, debugger(logger, 'Storage'))

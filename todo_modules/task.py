@@ -226,4 +226,4 @@ class Task():
     def is_deleted(self):
         return self.info['deleted'] is not None
 
-#Task = decorate_class(Task, debugger(logger, 'Task'))
+Task = decorate_class(Task, debugger(logger, 'Task'))

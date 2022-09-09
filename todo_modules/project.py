@@ -98,4 +98,4 @@ class Project():
         filesIO.write(Project.path, projects, dumps=True)
 
 
-#Project = decorate_class(Project, debugger(logger, 'Project'))
+Project = decorate_class(Project, debugger(logger, 'Project'))
