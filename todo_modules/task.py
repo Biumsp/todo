@@ -13,7 +13,7 @@ class Task():
         self.name = name
         self.iname = int(name)
         self.path = os.path.join(Task.storage.path, name + '.task')
-        self.info = self.read() # All static attributes of the task
+        self.info = self.read()
         
         self.urgency    = 0
         self.importance = 0
@@ -43,7 +43,6 @@ class Task():
             'secondary_projects': [],
             'projects': [],
             'time': 1,
-            'priority': 0,
             'created': now(),
             'completed': None,
             'deleted': None
@@ -110,7 +109,7 @@ class Task():
 
     @property
     def main_project(self):
-        return self.info['description']
+        return self.info['main_project']
         
     @main_project.setter
     def main_project(self, value):
@@ -133,7 +132,12 @@ class Task():
     def secondary_projects(self, value):
         old_value = self.info['secondary_projects']
         self.info['secondary_projects'] = value
-        self.info['projects'] = [self.info['main_project']] + value
+
+        if self.info['main_project'] is not None:
+            self.info['projects'] = [self.info['main_project']] + value
+        else: 
+            self.info['projects'] = value
+
         if old_value != value: self.write()
 
 

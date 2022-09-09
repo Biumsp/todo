@@ -59,9 +59,6 @@ class Storage():
         projects = []
         for p_name in dict_projects:
             projects.append(Project(p_name))
-            for t in self.active_tasks():
-                if p_name in t.projects:
-                    projects[-1].restore()
 
         return projects
 

@@ -12,8 +12,6 @@ class Project():
         self.info = self.read() # All static attributes of the project 
         self.write()
 
-        self.importance = 0
-
 
     @property
     def name(self):
