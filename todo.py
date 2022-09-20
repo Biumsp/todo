@@ -86,15 +86,15 @@ def add(project, description, after, before, time, commit):
 	storage.add(project, description, after, before, time, commit)
 
 
-@cli.command()
-@click.argument('name')
+@cli.command(no_args_is_help=True)
+@click.argument('name', type=str, required=True)
 @click.option('--due', '-due', default=never(), type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
 @click.option('--importance', '-I', default=10, show_default=True, help='Project relative importance')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def new_project(name, due, importance, commit):
+def add_project(name, due, importance, commit):
 	'''Create a new project'''
 
-	storage.new_project(name, due, importance, commit)
+	storage.add_project(name, due, importance, commit)
 
 
 @cli.command()
@@ -167,7 +167,7 @@ def edit(task_id, project, after, before, due, delete_due, override, commit):
 	validate(excludes(due, after), 'cannot modify precedence and due-date at the same time')
 	validate(excludes(due, before), 'cannot modify precedence and due-date at the same time')
 
-	storage.edit(task_id, project, new_project, after, before, due, override, commit)
+	storage.edit(task_id, project, after, before, due, override, commit)
 
 
 @cli.command(no_args_is_help=True)

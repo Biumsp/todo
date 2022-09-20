@@ -119,7 +119,7 @@ class Storage():
             return '0000'
 
 
-    def new_project(self, name, due, importance, commit):
+    def add_project(self, name, due, importance, commit):
         self.validate_project_name(name)
 
         project = Project(name)
