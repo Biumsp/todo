@@ -10,20 +10,16 @@ class Project():
         self._name = name
         self.value = 0
         self.info = self.read() # All static attributes of the project 
+        self.urgency = self._compute_urgency()
         self.write()
 
     
     def _compute_urgency(self):
         
-        # time_left = diff_dates(self.info['due'], now())
-        # hours_per_day = (self.priority*2 + 0.5)
-        # days_to_complete = self.time/hours_per_day
+        time_left = diff_dates(self.info['due'], now())
+        urgency = 100//max([100-time_left, 1])
 
-        # urgency = time_left - days_to_complete
-        # urgency = 100//max(urgency, 1)
-
-        #return math.floor(urgency)
-        return 1
+        return math.floor(urgency)
 
 
     @property

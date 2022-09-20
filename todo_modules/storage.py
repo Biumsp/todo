@@ -376,8 +376,6 @@ class Storage():
 
                 t.projects = list(sp)
 
-        for p in self.projects: p._compute_urgency()
-
         for t in self.tasks:
             if not t.is_active(): continue
             projects = [self._get_project_by_name(p) for p in t.projects]
