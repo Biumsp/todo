@@ -12,6 +12,19 @@ class Project():
         self.info = self.read() # All static attributes of the project 
         self.write()
 
+    
+    def _compute_urgency(self):
+        
+        # time_left = diff_dates(self.info['due'], now())
+        # hours_per_day = (self.priority*2 + 0.5)
+        # days_to_complete = self.time/hours_per_day
+
+        # urgency = time_left - days_to_complete
+        # urgency = 100//max(urgency, 1)
+
+        #return math.floor(urgency)
+        return 1
+
 
     @property
     def name(self):
@@ -40,15 +53,6 @@ class Project():
     def priority(self):
         return self.info['priority']
 
-    @priority.setter
-    def priority(self, value: int):
-        old_value = self.info['priority']
-        if value >= 3:
-            self.info['priority'] = 3
-        else:
-            self.info['priority'] = value
-        if old_value != value: self.write()
-
 
     @property
     def importance(self):
@@ -65,7 +69,6 @@ class Project():
         return {
             'name': self._name,
             'importance': 0,
-            'priority': 0,
             'due': never(),
         }
 

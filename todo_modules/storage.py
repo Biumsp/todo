@@ -4,7 +4,7 @@ from .utilities import fatal_error, get_valid_description
 from .utilities import decorate_class, debugger, logger, _c
 from .task import Task
 from .project import Project
-import os, re
+import os, re, math
 
 class LookupError(Exception): pass
 class NameError(Exception): pass
@@ -119,12 +119,11 @@ class Storage():
             return '0000'
 
 
-    def new_project(self, name, due, priority, importance, commit):
+    def new_project(self, name, due, importance, commit):
         self.validate_project_name(name)
 
         project = Project(name)
         project.due = self._validate_date(due)
-        project.priority = priority
         project.importance = int(importance)
 
         if not commit: commit = f'Create project "{name}"'
@@ -181,7 +180,7 @@ class Storage():
                 t.projects = [p if p != old_name else new_name for p in t.projects]
 
     
-    def edit_project(self, project_name, name, due, priority, importance, commit):
+    def edit_project(self, project_name, name, due, importance, commit):
         project = self._get_project_by_name(project_name)
         if due is not None: due = self._validate_date(due)
 
@@ -216,7 +215,7 @@ class Storage():
         task.description = description
         task.time = time
 
-        task.main_project = project.name
+        task.projects = [project.name]
 
         self.add_following_to_task(after, task=task)
         self.add_followers_to_task(before, task=task)
@@ -283,20 +282,11 @@ class Storage():
         return [t for t in self.tasks if t.name == name][0]
 
        
-    def _get_closest_due(self, projects_names):
-        projects  = [Project(p) for p in projects_names]
+    def _get_closest_due(self, projects):
         due_dates = [p.due for p in projects]
         due_dates.sort()
 
         return due_dates[0]
-
-
-    def _get_average_priority(self, projects_names):
-        projects = [Project(p) for p in projects_names]
-        p = [p.priority for p in projects]
-        wp = [x.priority**2 for x in p]
-
-        return sum(wp)/sum(p)
 
 
     def __str__(self):
@@ -363,6 +353,8 @@ class Storage():
             imp = [i/sum(imp)*project.importance for i in imp]
             for t, i in zip(tasks, imp): t.importance += i
 
+        for t in self.tasks: t.importance = math.floor(t.importance)
+
 
     def refresh(self):
 
@@ -381,28 +373,24 @@ class Storage():
                     if not ft.is_active(): continue
                     if t.name not in ft.following: ft.following = ft.following.append(t.name)
                     sp = sp.union(set(ft.projects))
-                
-                sp.remove(t.main_project)
-                t.secondary_projects = list(sp)
 
+                t.projects = list(sp)
+
+        for p in self.projects: p._compute_urgency()
 
         for t in self.tasks:
             if not t.is_active(): continue
-            t.due = self._get_closest_due(t.projects)
-            t.priority = self._get_average_priority(t.projects)
-            t.urgency = t._get_urgency()
+            projects = [self._get_project_by_name(p) for p in t.projects]
+            t.due = self._get_closest_due(projects)
+            t.urgency = max([p.urgency for p in projects])
         
         self.compute_importance()
-
-
-    def active_tasks(self):
-        return [t for t in self.tasks if t.is_active()]
 
 
     def show(self, task_name):
         t = self._get_task_by_name(task_name)
 
-        print('ID: {}\nI/U {}/{}\nstatus: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\ndue date: {}\ntime: {}\npriority: {}\n   {}'.format(
+        print('ID: {}\nI/U {}/{}\nstatus: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\ndue date: {}\ntime: {}\n   {}'.format(
             t.name,
             t.importance, 
             t.urgency, 
@@ -411,7 +399,6 @@ class Storage():
             t.deleted, 
             t.due, 
             t.time,
-            t.priority,
             t.description.replace('\n', '\n   ')
         ))
 
@@ -502,7 +489,6 @@ class Storage():
                 out = ((_c.green + 'ID: {}' + _c.reset).format(t.name))
                 out += '\n   ' + t.description.replace('\n', '\n   ')
                 print.add(out)
-
 
         print.empty()
 

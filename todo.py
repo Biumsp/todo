@@ -1,14 +1,13 @@
-from email.policy import default
 from todo_modules.utilities import print, filesIO
-from todo_modules.utilities import excludes, validate, never, now, fatal_error
+from todo_modules.utilities import excludes, validate, never
 from todo_modules.utilities import logger
 from todo_modules.storage import Storage
 import os, click, sys
 
-logger.set_state_debug()
-logger.activate_IO()
-print.auto_indent()
-print.lines_step()
+# logger.set_state_debug()
+# logger.activate_IO()
+# print.auto_indent()
+# print.lines_step()
 
 # Read configurations
 MY_STATUS = os.getenv('MY_STATUS')
@@ -90,13 +89,12 @@ def add(project, description, after, before, time, commit):
 @cli.command()
 @click.argument('name')
 @click.option('--due', '-due', default=never(), type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
-@click.option('--priority', '-P', count=True, help='Priority level')
 @click.option('--importance', '-I', default=10, show_default=True, help='Project relative importance')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def new_project(name, due, priority, importance, commit):
+def new_project(name, due, importance, commit):
 	'''Create a new project'''
 
-	storage.new_project(name, due, priority, importance, commit)
+	storage.new_project(name, due, importance, commit)
 
 
 @cli.command()
@@ -144,33 +142,27 @@ def delete(task_id, commit):
 
 @cli.command(no_args_is_help=True)
 @click.argument('task-id', type=int, required=True)
-@click.option('--project', '-p', multiple=True, help='Add existing project to task')
-@click.option('--new-project', '-n', multiple=True, help='Create new project and add it to task')
+@click.option('--project', '-p', help='Add existing project to task')
 @click.option('--after', '-a', multiple=True, help='The tasks it depends on')
 @click.option('--before', '-b', multiple=True, help='The tasks depending on this task')
 @click.option('--due', '-due', default=None, type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
 @click.option('--delete-due', '-D', is_flag=True, help='Due date')
 @click.option('--override', '-O', is_flag=True, help='Override existing info')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def edit(task_id, project, new_project, after, before, due, delete_due, override, commit):
+def edit(task_id, project, after, before, due, delete_due, override, commit):
 	'''Edit a task'''
 	
 	# Validate input
 	validate(excludes(delete_due, due), 'cannot modify and delete the due-date at the same time')
 
 	# Manipulate input
-	project 	 = list(set(project))
-	new_project  = list(set(new_project))
-	after 		 = list(set(after))
-	before 		 = list(set(before))
+	after 	= list(set(after))
+	before 	= list(set(before))
 	if delete_due: due = never()
 
 	# Check exclusions
 	validate(excludes(after, project), 'cannot modify projects and reference at the same time')
 	validate(excludes(before, project), 'cannot modify projects and reference at the same time')
-	validate(excludes(after, new_project), 'cannot modify projects and reference at the same time')
-	validate(excludes(before, new_project), 'cannot modify projects and reference at the same time')
-	validate(excludes(due, new_project), 'cannot modify projects and due-date at the same time')
 	validate(excludes(due, project), 'cannot modify projects and due-date at the same time')
 	validate(excludes(due, after), 'cannot modify precedence and due-date at the same time')
 	validate(excludes(due, before), 'cannot modify precedence and due-date at the same time')
@@ -183,10 +175,9 @@ def edit(task_id, project, new_project, after, before, due, delete_due, override
 @click.option('--name', '-n', type=str, help='Change the project name')
 @click.option('--due', '-due', default=None, type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
 @click.option('--delete-due', '-D', is_flag=True, help='Due date')
-@click.option('--priority', '-P', count=True, help='Priority level')
 @click.option('--importance', '-I', default=10, show_default=True, help='Project relative importance')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def edit_project(project, after, before, name, due, delete_due, priority, importance, commit):
+def edit_project(project, name, due, delete_due, importance, commit):
 	'''Edit a project'''
 	
 	# Validate input
@@ -196,9 +187,9 @@ def edit_project(project, after, before, name, due, delete_due, priority, import
 	if delete_due: due = never()
 
 	# Check exclusions
-	validate(any([priority, importance, due, name]), 'choose at least one option')
+	validate(any([importance, due, name]), 'choose at least one option')
 
-	storage.edit_project(project, name, due, priority, importance, commit)
+	storage.edit_project(project, name, due, importance, commit)
 
 
 @cli.command(no_args_is_help=True)
@@ -207,10 +198,10 @@ def show(task_id):
 	'''Show all info about the task'''
 
 	storage.show(task_id)
-
+	
 
 @cli.command(no_args_is_help=True)
-@click.argument('--project', '-p', type=str, required=True)
+@click.argument('project', type=str, required=True)
 def show_project(project):
 	'''Show all info about the project'''
 

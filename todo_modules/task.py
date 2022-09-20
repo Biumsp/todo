@@ -17,20 +17,7 @@ class Task():
         
         self.urgency    = 0
         self.importance = 0
-        self.priority   = 0
-
-
-    def _get_urgency(self):
-        if not self.is_active(): return 0
-        
-        time_left = diff_dates(self.info['due'], now())
-        hours_per_day = (self.priority*2 + 0.5)
-        days_to_complete = self.time/hours_per_day
-
-        urgency = time_left - days_to_complete
-        urgency = 100//max(urgency, 1)
-
-        return math.floor(urgency)
+        self.due = never()
 
 
     def _newborn_info(self):
@@ -39,8 +26,6 @@ class Task():
             'status': Task.TODO,
             'following': [],
             'followers': [],
-            'main_project': None,
-            'secondary_projects': [],
             'projects': [],
             'time': 1,
             'created': now(),
@@ -80,9 +65,8 @@ class Task():
         
     @following.setter
     def following(self, value):
-        old_value = self.info['following']
         self.info['following'] = value
-        if old_value != value: self.write()
+        self.write()
 
 
     @property
@@ -91,9 +75,8 @@ class Task():
         
     @followers.setter
     def followers(self, value):
-        old_value = self.info['followers']
         self.info['followers'] = value
-        if old_value != value: self.write()
+        self.write()
 
     
     @property
@@ -108,48 +91,13 @@ class Task():
 
 
     @property
-    def main_project(self):
-        return self.info['main_project']
-        
-    @main_project.setter
-    def main_project(self, value):
-        old_value = self.info['main_project']
-        self.info['main_project'] = value
-        self.info['projects'] = self.info['secondary_projects'] + [value]
-        if old_value != value: self.write()
-
-
-    @property
     def projects(self):
         return self.info['projects']
 
-
-    @property
-    def secondary_projects(self):
-        return self.info['secondary_projects']
-        
-    @secondary_projects.setter
-    def secondary_projects(self, value):
-        old_value = self.info['secondary_projects']
-        self.info['secondary_projects'] = value
-
-        if self.info['main_project'] is not None:
-            self.info['projects'] = [self.info['main_project']] + value
-        else: 
-            self.info['projects'] = value
-
-        if old_value != value: self.write()
-
-
-    @property
-    def due(self):
-        return self.info['due']
-        
-    @due.setter
-    def due(self, value):
-        old_value = self.info['due']
-        self.info['due'] = value
-        if old_value != value: self.write()
+    @projects.setter
+    def projects(self, value):
+        self.info['projects'] = value
+        self.write()
 
     
     @property
