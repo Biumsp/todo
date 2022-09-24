@@ -14,7 +14,7 @@ MY_STATUS = os.getenv('MY_STATUS')
 HOME = os.path.expanduser('~')
 
 
-STORAGE_PATH = os.path.join(HOME, '.test_todo_storage')
+STORAGE_PATH = os.path.join(HOME, '.todo_storage')
 STORAGE_PATH = os.path.join(STORAGE_PATH, MY_STATUS)
 CONFIG = os.path.join(STORAGE_PATH, '.todo_config.json')
 
@@ -38,17 +38,18 @@ DEFAULT_LIMIT = config['default_limit']
 @click.option('--logging-debug', is_flag=True, help='Set logging to debug', hidden=True)
 @click.option('--logging-io', is_flag=True, help='Activate I/O logging', hidden=True)
 @click.option('--indent', is_flag=True, help='Nested indentation', hidden=True)
-@click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I']), help='Order by')
+@click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I', 'creation', 'C']), help='Order by')
 @click.option('--project', '-p', multiple=True, help='Projects to filter by')
 @click.option('--info', '-i', default=DEFAULT_INFO, count=True, help='Show info')
 @click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active tasks')
 @click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed tasks')
 @click.option('--deleted / --no-deleted', '-d / -D', is_flag=True, default=False, help='Include deleted tasks')
+@click.option('--filter', '-f', default='', help='Filter by match in description')
 @click.option('--limit', '-l', default=DEFAULT_LIMIT, help='Limit the number of results')
 @click.option('--no-limit', '-L', is_flag=True, help='Show all the results')
 @click.option('--one-line / --multi-line', '-o / -O', is_flag=True, default=DEFAULT_ONELINE, help='Short output')
 def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
-		project, active, completed, deleted, limit, no_limit, info, one_line):
+		project, active, completed, deleted, filter, limit, no_limit, info, one_line):
 	'''See all your tasks'''
 
 	# Validate input
@@ -66,7 +67,7 @@ def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
 
 	# List the task, if no sub-command is specified
 	if ctx.invoked_subcommand is None:
-		storage.list(sort, projects, active, completed, deleted, limit, info, one_line)
+		storage.list(sort, projects, active, completed, deleted, filter, limit, info, one_line)
 
 
 @cli.command(no_args_is_help=True)
@@ -90,7 +91,7 @@ def add(project, description, after, before, time, commit):
 @click.argument('name', type=str, required=True)
 @click.option('--due', '-due', default=never(), type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
 @click.option('--description', '-d', is_flag=True, help='Project description')
-@click.option('--importance', '-I', default=10, show_default=True, help='Project relative importance')
+@click.option('--importance', '-I', default=100, show_default=True, help='Project relative importance')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
 def addproject(name, due, description, importance, commit):
 	'''Create a new project'''

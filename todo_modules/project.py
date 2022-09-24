@@ -13,7 +13,7 @@ class Project():
         self.value = 0
         self.status = Project.ACTIVE
         self.info = self.read() # All static attributes of the project 
-        self.urgency = self._compute_urgency()
+        self.urgency = 0
         self.write()
 
     

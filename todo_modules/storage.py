@@ -66,6 +66,11 @@ class Storage():
     def _project_lookup(self, name):
         '''Matches the name with the existing projects and completes it'''
 
+        # First try the exact match
+        matches = [p for p in self.projects if name == p.name]
+        if matches: return matches[0]
+
+        # If it fails, try partial match
         matches = [p for p in self.projects if name in p.name]
                 
         if len(matches) > 1:
@@ -368,11 +373,14 @@ class Storage():
 
     def show(self, task_name):
         t = self._get_task_by_name(task_name)
+        project = self._get_project_by_name(t.project)
 
-        print('ID: {}\nI/U {}/{}\nstatus: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\n   {}'.format(
+        print('ID: {}\nI/U {}/{}\nstatus: {}\nproject: {}\ndue: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\n   {}'.format(
             t.name,
             t.importance, t.urgency, 
             t.status, 
+            project.name,
+            project.due,
             t.created, t.completed, t.deleted, 
             t.description.replace('\n', '\n   ')
         ))
@@ -389,12 +397,18 @@ class Storage():
             p.description.replace('\n', '\n   ')
         ))
 
-    def list(self, sort, projects, active, completed, deleted, limit, info, one_line):
+    def list(self, sort, projects, active, completed, deleted, filter, limit, info, one_line):
 
         if sort in ['importance', 'I']: 
+            self.tasks.sort(key=lambda t: t.name, reverse=True)
             self.tasks.sort(key=lambda t: t.urgency, reverse=True)
             self.tasks.sort(key=lambda t: t.importance, reverse=True)
+
+        elif sort in ['creation', 'C']:
+            self.tasks.sort(key=lambda t: t.name, reverse=True)
+
         else:
+            self.tasks.sort(key=lambda t: t.name, reverse=True)
             self.tasks.sort(key=lambda t: t.importance, reverse=True)
             self.tasks.sort(key=lambda t: t.urgency, reverse=True)
 
@@ -405,6 +419,7 @@ class Storage():
             if t.is_deleted() and not deleted: continue
             if t.is_completed() and not completed: continue
             if t.is_active() and not active: continue
+            if filter not in t.description: continue
             for p in projects: 
                 if p.name not in t.projects: stop = True
             if stop: continue
@@ -450,14 +465,14 @@ class Storage():
             elif info == 2:
                 for t in tasks:
                     out = (_c.orange + 'ID: {:5}\nI/U: {:>3}/{:<3}\nstatus: {:^6}' + _c.reset).format(
-                        t.name, t.due, t.importance, t.urgency, t.status)
+                        t.name, t.importance, t.urgency, t.status)
                     out += '\n   ' + t.description.replace('\n', '\n   ')
                     print.add(out)
 
             elif info == 1:
                 for t in tasks:
                     out = (_c.orange + 'ID: {:5}\nI/U: {:>3}/{:<3}' + _c.reset).format(
-                        t.name, t.status, t.due, t.importance, t.urgency)
+                        t.name, t.importance, t.urgency)
                     out += '\n   ' + t.description.replace('\n', '\n   ')
                     print.add(out)
 
