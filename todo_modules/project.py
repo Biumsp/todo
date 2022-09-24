@@ -5,10 +5,13 @@ import math
 
 class Project():
     path = ''
+    ACTIVE = 'active'
+    COMPLETED = 'completed'
 
     def __init__(self, name):
         self._name = name
         self.value = 0
+        self.status = Project.ACTIVE
         self.info = self.read() # All static attributes of the project 
         self.urgency = self._compute_urgency()
         self.write()
@@ -17,7 +20,7 @@ class Project():
     def _compute_urgency(self):
         
         time_left = diff_dates(self.info['due'], now())
-        urgency = 100//max([100-time_left, 1])
+        urgency = 100//max([time_left, 1])
 
         return math.floor(urgency)
 
@@ -31,7 +34,18 @@ class Project():
         old_value = self.name
         self._name = value
         self.info['name'] = value
-        if old_value != value: self.write()       
+        if old_value != value: self.write() 
+
+
+    @property
+    def description(self):
+        return self.info['description']
+        
+    @description.setter
+    def description(self, value):
+        old_value = self.info['description']
+        self.info['description'] = value
+        if old_value != value: self.write()      
 
 
     @property
@@ -66,6 +80,7 @@ class Project():
             'name': self._name,
             'importance': 0,
             'due': never(),
+            'description': ''
         }
 
 

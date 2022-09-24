@@ -1,5 +1,5 @@
 from datetime import time
-from .utilities import print, filesIO, GitWrapper, num2str, now
+from .utilities import print, filesIO, GitWrapper, num2str, now, never
 from .utilities import fatal_error, get_valid_description
 from .utilities import decorate_class, debugger, logger, _c
 from .task import Task
@@ -74,11 +74,11 @@ class Storage():
         if len(matches) == 0:
             fatal_error(f'no project named "{name}"')
         
-        return matches[0].name
+        return matches[0]
 
     
     def _get_project_by_name(self, project_name):
-        project_name = self._project_lookup(project_name)
+        project_name = self._project_lookup(project_name).name
         return [p for p in self.projects if p.name == project_name][0]
 
     
@@ -102,7 +102,7 @@ class Storage():
         if not re.match(r'^[a-zA-Z0-9_]+$', name):
             fatal_error(f'project "{name}" contains invalid characters')
 
-        if len(name) > 25:
+        if len(name) > 35:
             fatal_error(f'project "{name}" is too long')
 
         if len(name) < 3:
@@ -119,12 +119,15 @@ class Storage():
             return '0000'
 
 
-    def add_project(self, name, due, importance, commit):
+    def add_project(self, name, due, description, importance, commit):
         self.validate_project_name(name)
+
+        description = get_valid_description(None) if description else ""
 
         project = Project(name)
         project.due = self._validate_date(due)
         project.importance = int(importance)
+        project.description = description
 
         if not commit: commit = f'Create project "{name}"'
         self.git.commit(project.path, commit)
@@ -132,18 +135,13 @@ class Storage():
         print(f'Created project {name}')
 
 
-    def edit(self, name, projects, new_projects, after, before, due, override, commit):
+    def edit(self, name, project, after, before, override, commit):
         task = self._get_task_by_name(name)
-        if due is not None: due = self._validate_date(due)
 
-        if not any([projects, new_projects, after, before, due]):
+        if not any([project, after, before]):
             task.description = get_valid_description(None, task.description)
 
-        for i, p in enumerate(projects):
-            projects[i] = self._project_lookup(p)
-        
-        for i, p in enumerate(new_projects):
-            self.validate_project_name(p)
+        if project: project = self._project_lookup(project)
 
         for i, t in enumerate(after):
             after[i] = self._task_lookup(t)
@@ -151,9 +149,7 @@ class Storage():
         for i, t in enumerate(before):
             before[i] = self._task_lookup(t)
 
-        all_projects = projects + new_projects
-        if all_projects: 
-            self.add_projects_to_task(all_projects, task=task, override=override)
+        if project: task.project = project.name
 
         if after:
             self.add_following_to_task(after, task=task, override=override)
@@ -165,30 +161,28 @@ class Storage():
             for t in before:
                 self.add_following_to_task([task.name], task_name=t) 
 
-        if due:
-            self.add_due_to_task(due, task=task)
 
         if not commit: commit = f'Edit task "{name}"'
         self.git.commit(task.path, commit)
 
         print(f'Edited task {task.name}: {task.description.splitlines()[0]}')
 
-
-    def _replace_project_in_tasks(self, old_name, new_name):
-        for t in self.tasks:
-            if old_name in t.projects:
-                t.projects = [p if p != old_name else new_name for p in t.projects]
-
     
-    def edit_project(self, project_name, name, due, importance, commit):
+    def edit_project(self, project_name, name, due, commit):
         project = self._get_project_by_name(project_name)
-        if due is not None: due = self._validate_date(due)
+        try: 
+            if due is not None: due = self._validate_date(due)
+        except AttributeError: pass
 
         if due: project.due = due
         if name: 
             old_name = project.name
             project.name = name
-            self._replace_project_in_tasks(old_name, name)
+        #if importance: pass
+
+        if not any([name, due]):
+            description = get_valid_description(None, initial_message=project.description)
+            project.description = description
 
         if not commit: commit = f'Edit project "{project.name}"'
         self.git.commit(self.projects_path, commit)
@@ -197,7 +191,6 @@ class Storage():
 
 
     def add(self, project, description, after, before, time, commit):
-        if due is not None: due = self._validate_date(due)
 
         project = self._project_lookup(project)
 
@@ -214,8 +207,7 @@ class Storage():
 
         task.description = description
         task.time = time
-
-        task.projects = [project.name]
+        task.project = project.name
 
         self.add_following_to_task(after, task=task)
         self.add_followers_to_task(before, task=task)
@@ -251,18 +243,6 @@ class Storage():
             task.following = list(following)
             
 
-    def add_projects_to_task(self, projects_names, task_name=None, task=None, override=False):
-        assert task or task_name
-        
-        if task is None:task = self._get_task_by_name(task_name)
-        projects_names = set(projects_names)        
-
-        if override: task.projects = list(projects_names)
-        else: 
-            for p in task.projects: projects_names.add(p)
-            task.projects = list(projects_names)
-
-
     def add_due_to_task(self, date, task_name=None, task=None, override=False):
         if task is None:task = self._get_task_by_name(task_name)
 
@@ -286,7 +266,8 @@ class Storage():
         due_dates = [p.due for p in projects]
         due_dates.sort()
 
-        return due_dates[0]
+        try: return due_dates[0]
+        except IndexError: return never()
 
 
     def __str__(self):
@@ -365,13 +346,13 @@ class Storage():
                 following_tasks = [self._get_task_by_name(name) for name in t.following]
                 for ft in following_tasks:
                     if not ft.is_active(): continue
-                    if t.name not in ft.followers: ft.followers = ft.followers.append(t.name)
+                    if t.name not in ft.followers: ft.followers += [t.name]
 
                 sp = set(t.projects)
                 followers_tasks = [self._get_task_by_name(name) for name in t.followers]
                 for ft in followers_tasks:
                     if not ft.is_active(): continue
-                    if t.name not in ft.following: ft.following = ft.following.append(t.name)
+                    if t.name not in ft.following: ft.following += [t.name]
                     sp = sp.union(set(ft.projects))
 
                 t.projects = list(sp)
@@ -388,18 +369,25 @@ class Storage():
     def show(self, task_name):
         t = self._get_task_by_name(task_name)
 
-        print('ID: {}\nI/U {}/{}\nstatus: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\ndue date: {}\ntime: {}\n   {}'.format(
+        print('ID: {}\nI/U {}/{}\nstatus: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\n   {}'.format(
             t.name,
-            t.importance, 
-            t.urgency, 
+            t.importance, t.urgency, 
             t.status, 
-            t.created, t.completed, 
-            t.deleted, 
-            t.due, 
-            t.time,
+            t.created, t.completed, t.deleted, 
             t.description.replace('\n', '\n   ')
         ))
 
+    def show_project(self, project_name):
+        p = self._get_project_by_name(project_name)
+
+        print('ID: {}\nI/U {}/{}\nstatus: {}\ndue date: {}\n   {}'.format(
+            p.name,
+            p.importance, 
+            p.urgency, 
+            p.status, 
+            p.due, 
+            p.description.replace('\n', '\n   ')
+        ))
 
     def list(self, sort, projects, active, completed, deleted, limit, info, one_line):
 
@@ -418,7 +406,7 @@ class Storage():
             if t.is_completed() and not completed: continue
             if t.is_active() and not active: continue
             for p in projects: 
-                if p not in t.projects: stop = True
+                if p.name not in t.projects: stop = True
             if stop: continue
 
             tasks.append(t)
@@ -435,12 +423,12 @@ class Storage():
                         t.name, t.due, t.status, t.importance, t.urgency) + t.description.splitlines()[0])
 
             elif info == 2:
-                print.add((_c.orange + '{:^5} {:4} {:^6} - {}' + _c.reset).format(
-                    'ID', 'status', 'I/U', 'description'))
+                print.add((_c.orange + '{:^5} {:^6} {:4} - {}' + _c.reset).format(
+                    'ID', 'I/U','status', 'description'))
 
                 for t in tasks:
-                    print.add((_c.green + '{:5} {:^6} {:>2}/{:<3} - ' + _c.reset).format(
-                        t.name, t.status, t.importance, t.urgency) + t.description.splitlines()[0])
+                    print.add((_c.green + '{:5} {:>2}/{:<3} {:^6} - ' + _c.reset).format(
+                        t.name, t.importance, t.urgency, t.status) + t.description.splitlines()[0])
 
             elif info == 1:
                 print.add((_c.orange + '{:^5} {:^6} - {}' + _c.reset).format(
@@ -461,8 +449,8 @@ class Storage():
 
             elif info == 2:
                 for t in tasks:
-                    out = (_c.orange + 'ID: {:5}\nstatus: {:^6}\nI/U: {:>3}/{:<3}' + _c.reset).format(
-                        t.name, t.status, t.due, t.importance, t.urgency)
+                    out = (_c.orange + 'ID: {:5}\nI/U: {:>3}/{:<3}\nstatus: {:^6}' + _c.reset).format(
+                        t.name, t.due, t.importance, t.urgency, t.status)
                     out += '\n   ' + t.description.replace('\n', '\n   ')
                     print.add(out)
 
@@ -490,6 +478,18 @@ class Storage():
 
         print.empty()
 
+    
+    def _is_project_active(self, p):
+        project_tasks = []
+        for t in self.tasks:
+            if t.is_active() and p.name in t.projects:
+                project_tasks.append(t)
+
+        return len(project_tasks) > 0
+    
+    def _is_project_completed(self, p):
+        return not self._is_project_active(p)
+
 
     def list_projects(self, sort, limit, active, completed):
 
@@ -502,8 +502,8 @@ class Storage():
 
         projects = []
         for p in self.projects:
-            if p.is_completed() and not completed: continue
-            if p.is_active() and not active: continue
+            if self._is_project_completed(p) and not completed: continue
+            if self._is_project_active(p) and not active: continue
 
             projects.append(p)
 

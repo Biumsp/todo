@@ -17,6 +17,7 @@ class Task():
         
         self.urgency    = 0
         self.importance = 0
+        self.projects   = [self.project] if self.project else [] 
         self.due = never()
 
 
@@ -26,7 +27,7 @@ class Task():
             'status': Task.TODO,
             'following': [],
             'followers': [],
-            'projects': [],
+            'project': '',
             'time': 1,
             'created': now(),
             'completed': None,
@@ -91,12 +92,13 @@ class Task():
 
 
     @property
-    def projects(self):
-        return self.info['projects']
+    def project(self):
+        return self.info['project']
 
-    @projects.setter
-    def projects(self, value):
-        self.info['projects'] = value
+    @project.setter
+    def project(self, value):
+        self.info['project'] = value
+        self.projects += [value]
         self.write()
 
     
