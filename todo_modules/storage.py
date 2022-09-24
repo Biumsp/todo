@@ -1,5 +1,4 @@
-from datetime import time
-from .utilities import print, filesIO, GitWrapper, num2str, now, never
+from .utilities import print, filesIO, GitWrapper, num2str, now, never, diff_dates
 from .utilities import fatal_error, get_valid_description
 from .utilities import decorate_class, debugger, logger, _c
 from .task import Task
@@ -140,10 +139,10 @@ class Storage():
         print(f'Created project {name}')
 
 
-    def edit(self, name, project, after, before, override, commit):
+    def edit(self, name, project, time, after, before, override, commit):
         task = self._get_task_by_name(name)
 
-        if not any([project, after, before]):
+        if not any([project, after, before, time]):
             task.description = get_valid_description(None, task.description)
 
         if project: project = self._project_lookup(project)
@@ -155,6 +154,8 @@ class Storage():
             before[i] = self._task_lookup(t)
 
         if project: task.project = project.name
+
+        if time: task.time = time
 
         if after:
             self.add_following_to_task(after, task=task, override=override)
@@ -341,6 +342,26 @@ class Storage():
 
         for t in self.tasks: t.importance = math.floor(t.importance)
 
+    
+    def _compute_project_urgency(self, p):
+
+        WORKING_HOURS_PER_DAY = 4
+        
+        tasks = [t for t in self.tasks if p.name in t.projects and t.is_active()]
+
+        # Estimated completion time
+        time = max(sum(t.time for t in tasks), 0.001)
+        
+        time_left = diff_dates(p.due, now()) # days
+        time_left = time_left*WORKING_HOURS_PER_DAY     # hours           
+
+        # How many times could you complete the project in the time left
+        confidence = time_left/time
+
+        urgency = 100//max([confidence, 1])
+
+        return math.floor(urgency)
+
 
     def refresh(self):
 
@@ -362,6 +383,9 @@ class Storage():
 
                 t.projects = list(sp)
 
+        for p in self.projects:
+            p.urgency = self._compute_project_urgency(p)
+
         for t in self.tasks:
             if not t.is_active(): continue
             projects = [self._get_project_by_name(p) for p in t.projects]
@@ -375,12 +399,13 @@ class Storage():
         t = self._get_task_by_name(task_name)
         project = self._get_project_by_name(t.project)
 
-        print('ID: {}\nI/U {}/{}\nstatus: {}\nproject: {}\ndue: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\n   {}'.format(
+        print('ID: {}\nI/U {}/{}\nstatus: {}\nproject: {}\ndue: {}\ntime: {} [h]\ncreated: {}\ncompleted: {}\ndeleted: {}\n   {}'.format(
             t.name,
             t.importance, t.urgency, 
             t.status, 
             project.name,
             project.due,
+            t.time,
             t.created, t.completed, t.deleted, 
             t.description.replace('\n', '\n   ')
         ))

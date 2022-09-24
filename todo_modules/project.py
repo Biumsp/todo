@@ -1,4 +1,4 @@
-from .utilities import filesIO, never, diff_dates, now
+from .utilities import filesIO, never
 from .utilities import decorate_class, debugger, logger
 import math
 
@@ -15,14 +15,6 @@ class Project():
         self.info = self.read() # All static attributes of the project 
         self.urgency = 0
         self.write()
-
-    
-    def _compute_urgency(self):
-        
-        time_left = diff_dates(self.info['due'], now())
-        urgency = 100//max([time_left, 1])
-
-        return math.floor(urgency)
 
 
     @property
