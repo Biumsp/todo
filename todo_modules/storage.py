@@ -455,27 +455,27 @@ class Storage():
 
         if info and one_line:
             if info > 2:
-                print.add((_c.orange + '{:^5} {:^10} {:4} {:^6} - {}' + _c.reset).format(
+                print.add((_c.orange + '{:^5} {:^10} {:4} {:^7} - {}' + _c.reset).format(
                     'ID', 'due-date', 'status', 'I/U', 'description'))
 
                 for t in tasks:
-                    print.add((_c.green + '{:5} {:10} {:^6} {:>2}/{:<3} - ' + _c.reset).format(
+                    print.add((_c.green + '{:5} {:10} {:^6} {:>3}/{:<3} - ' + _c.reset).format(
                         t.name, t.due, t.status, t.importance, t.urgency) + t.description.splitlines()[0])
 
             elif info == 2:
-                print.add((_c.orange + '{:^5} {:^6} {:4} - {}' + _c.reset).format(
+                print.add((_c.orange + '{:^5} {:^7} {:4} - {}' + _c.reset).format(
                     'ID', 'I/U','status', 'description'))
 
                 for t in tasks:
-                    print.add((_c.green + '{:5} {:>2}/{:<3} {:^6} - ' + _c.reset).format(
+                    print.add((_c.green + '{:5} {:>3}/{:<3} {:^6} - ' + _c.reset).format(
                         t.name, t.importance, t.urgency, t.status) + t.description.splitlines()[0])
 
             elif info == 1:
-                print.add((_c.orange + '{:^5} {:^6} - {}' + _c.reset).format(
+                print.add((_c.orange + '{:^5} {:^7} - {}' + _c.reset).format(
                     'ID', 'I/U', 'description'))
 
                 for t in tasks:
-                    print.add((_c.green + '{:5} {:>2}/{:<3} - ' + _c.reset).format(
+                    print.add((_c.green + '{:5} {:>3}/{:<3} - ' + _c.reset).format(
                         t.name, t.importance, t.urgency) + t.description.splitlines()[0])
                     
 
@@ -549,10 +549,10 @@ class Storage():
 
         if limit < len(projects): projects = projects[:limit]
 
-        print.add((_c.orange + '{:6} {:10} {:^6} {}' + _c.reset).format(
+        print.add((_c.orange + '{:6} {:10} {:^7} {}' + _c.reset).format(
                 'status', 'due-date', 'I/U', 'name'))
         for p in projects:
-            print.add((_c.green + '{:6} {:10} {:>2}/{:<3} ' + _c.reset + '{}').format(
+            print.add((_c.green + '{:6} {:10} {:>3}/{:<3} ' + _c.reset + '{}').format(
                 p.status, p.due, p.importance, p.urgency, p.name))
 
         print.empty()
