@@ -319,7 +319,8 @@ class Storage():
 
     def compute_importance(self):
         def compute_task_importance(task, tasks, visited):
-            followers = [Task(t) for t in task.followers]
+            followers = [self._get_task_by_name(t) for t in task.followers]
+            followers = [t for t in followers if project.name in t.projects and t.is_active()]
             followers = set(followers).intersection(tasks)
             
             tot = 1
