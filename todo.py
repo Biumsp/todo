@@ -145,6 +145,16 @@ def delete(task_id, commit):
 
 @cli.command(no_args_is_help=True)
 @click.argument('task-id', type=int, required=True)
+@click.option('--yes', is_flag=True, callback=lambda c, p, v: sys.exit(0) if not v else None, expose_value=False, prompt='Are you sure?')
+@click.option('--git', '-g', 'commit', type=str, help='Git commit message')
+def deleteproject(task_id, commit):
+	'''Delete a project'''
+
+	storage.delete(task_id, commit)
+
+
+@cli.command(no_args_is_help=True)
+@click.argument('task-id', type=int, required=True)
 @click.option('--project', '-p', help='New project')
 @click.option('--time', '-t', type=float, help='Estimated time to complete the task')
 @click.option('--after', '-a', multiple=True, help='The tasks it depends on')
