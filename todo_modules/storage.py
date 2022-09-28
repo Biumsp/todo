@@ -39,7 +39,7 @@ class Storage():
             if date < now(date=True): 
                 date = date.replace(year=today.year+1)
 
-        if date < now(date=True): fatal_error('date cannot be in the past')
+        if date < now(date=True): print('Warning: date is in the past', color='orange')
         return date.strftime(r"%Y-%m-%d")
 
 
