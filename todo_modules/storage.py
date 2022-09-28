@@ -174,6 +174,10 @@ class Storage():
         print(f'Edited task {task.name}: {task.description.splitlines()[0]}')
 
     
+    def delete_project(self):
+        pass
+
+    
     def edit_project(self, project_name, name, due, commit):
         project = self._get_project_by_name(project_name)
         try: 
@@ -184,6 +188,10 @@ class Storage():
         if name: 
             old_name = project.name
             project.name = name
+            
+            for t in self.tasks:
+                if t.project == old_name: t.project = name
+                
         #if importance: pass
 
         if not any([name, due]):
@@ -543,17 +551,19 @@ class Storage():
 
         projects = []
         for p in self.projects:
-            if self._is_project_completed(p) and not completed: continue
-            if self._is_project_active(p) and not active: continue
+            p.status = Project.ACTIVE if self._is_project_active(p) else Project.COMPLETED
+
+            if p.is_completed() and not completed: continue
+            if p.is_active() and not active: continue
 
             projects.append(p)
 
         if limit < len(projects): projects = projects[:limit]
 
-        print.add((_c.orange + '{:6} {:10} {:^7} {}' + _c.reset).format(
+        print.add((_c.orange + '{:9} {:10} {:^7} {}' + _c.reset).format(
                 'status', 'due-date', 'I/U', 'name'))
         for p in projects:
-            print.add((_c.green + '{:6} {:10} {:>3}/{:<3} ' + _c.reset + '{}').format(
+            print.add((_c.green + '{:9} {:10} {:>3}/{:<3} ' + _c.reset + '{}').format(
                 p.status, p.due, p.importance, p.urgency, p.name))
 
         print.empty()
