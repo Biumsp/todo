@@ -1,6 +1,5 @@
 from .utilities import filesIO, never
 from .utilities import decorate_class, debugger, logger
-import math
 
 
 class Project():
@@ -26,7 +25,8 @@ class Project():
         old_value = self.name
         self._name = value
         self.info['name'] = value
-        if old_value != value: self.write() 
+        if old_value != value: 
+            self._rename_project(old_value, value)
 
 
     @property
@@ -103,5 +103,19 @@ class Project():
 
         filesIO.write(Project.path, projects, dumps=True)
 
+
+    def _rename_project(self, old, new):
+        projects = filesIO.read(Project.path, loads=True)
+
+        del projects[old]
+        projects.update({new: self.info})
+
+        filesIO.write(Project.path, projects, dumps=True)
+
+    def is_active(self):
+        return self.status == Project.ACTIVE
+
+    def is_completed(self):
+        return self.status == Project.COMPLETED
 
 Project = decorate_class(Project, debugger(logger, 'Project'))
