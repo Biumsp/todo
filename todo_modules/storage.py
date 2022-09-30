@@ -531,10 +531,12 @@ class Storage():
     def _is_project_active(self, p):
         project_tasks = []
         for t in self.tasks:
-            if t.is_active() and p.name in t.projects:
+            if p.name in t.projects:
                 project_tasks.append(t)
+                if not project_tasks: return True   # Consider projects with no tasks as active
+                project_tasks = [t for t in project_tasks if t.is_active()]
 
-        return len(project_tasks) > 0
+        return len(project_tasks) > 0   # Or projects with active tasks
     
     def _is_project_completed(self, p):
         return not self._is_project_active(p)
