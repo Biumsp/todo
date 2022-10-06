@@ -12,11 +12,10 @@ class Storage():
 
     def __init__(self, path):
         self.path = path
-        self.projects_path = os.path.join(self.path, '.projects')
         self.__init()
         self.git = GitWrapper(path)
 
-        Project.path = self.projects_path
+        Project.storage = self
         Task.storage = self
 
         self.tasks = self._get_tasks()
@@ -27,9 +26,6 @@ class Storage():
     def __init(self):
         if not os.path.isdir(self.path):
             filesIO.mkdir(self.path)
-
-        if not os.path.isfile(self.projects_path):
-            filesIO.write(self.projects_path, {}, dumps=True)
 
     
     def _validate_date(self, date):
@@ -45,40 +41,22 @@ class Storage():
 
     def _get_tasks(self):
         tasks = []
-        for task_file in os.listdir(self.path):
-            if task_file.endswith('.task'):
-                task_file = task_file.replace('.task', '')
+        for file in os.listdir(self.path):
+            if file.endswith('.task'):
+                task_file = file.replace('.task', '')
                 tasks.append(Task(task_file))
 
         return tasks    
 
 
     def _get_projects(self):
-        dict_projects = filesIO.read(self.projects_path, loads=True)
         projects = []
-        for p_name in dict_projects:
-            projects.append(Project(p_name))
+        for file in os.listdir(self.path):
+            if file.endswith('.project'):
+                project_file = file.replace('.project', '')
+                projects.append(Project(project_file))
 
         return projects
-
-
-    def _project_lookup(self, name):
-        '''Matches the name with the existing projects and completes it'''
-
-        # First try the exact match
-        matches = [p for p in self.projects if name == p.name]
-        if matches: return matches[0]
-
-        # If it fails, try partial match
-        matches = [p for p in self.projects if name in p.name]
-                
-        if len(matches) > 1:
-            fatal_error(f'ambiguous name "{name}" for project')
-
-        if len(matches) == 0:
-            fatal_error(f'no project named "{name}"')
-        
-        return matches[0]
 
     
     def _get_project_by_name(self, project_name):
@@ -96,24 +74,17 @@ class Storage():
         
         return matches[0].name
 
+    
+    def _project_lookup(self, name):
+        '''Matches the name with the existing projects and completes it'''
 
-    def validate_project_name(self, name):
-        '''Validates the name of a project'''
+        matches = [p for p in self.projects if p.iname == int(name)]
 
-        if name in [p.name for p in self.projects]:
-            fatal_error(f'project "{name}" already exists')
+        if len(matches) == 0:
+            fatal_error(f'no project numbered "{name}"')
         
-        if not re.match(r'^[a-zA-Z0-9_]+$', name):
-            fatal_error(f'project "{name}" contains invalid characters')
+        return matches[0]
 
-        if len(name) > 35:
-            fatal_error(f'project "{name}" is too long')
-
-        if len(name) < 3:
-            fatal_error(f'project "{name}" is too short')
-
-        if name.lower() != name:
-            fatal_error(f'project "{name}" must be lowercase')
 
 
     def _available_task_name(self):
@@ -122,13 +93,50 @@ class Storage():
         else:
             return '0000'
 
+    
+    def _available_project_name(self):
+        if self.projects:
+            return num2str(max([p.iname for p in self.projects]) + 1)
+        else:
+            return '0000'
 
-    def add_project(self, name, due, description, importance, commit):
-        self.validate_project_name(name)
 
-        description = get_valid_description(None) if description else ""
+    def add(self, project, description, after, before, time, commit):
 
+        project = self._project_lookup(project)
+
+        for i, t in enumerate(after):
+            after[i] = self._task_lookup(t)
+
+        for i, t in enumerate(before):
+            before[i] = self._task_lookup(t)
+
+        description = get_valid_description(description)
+
+        name = self._available_task_name()
+        task = Task(name)
+
+        task.description = description
+        task.time = time
+        task.project = project.name
+
+        self.add_following_to_task(after, task=task)
+        self.add_followers_to_task(before, task=task)
+        
+        if not commit: commit = f'Create task "{name}"'
+
+        self.refresh()
+        self.git.commit(task.path, commit)
+        print(f'Created task {task.name}')
+
+
+    def add_project(self, due, description, importance, commit):
+
+        description = get_valid_description(description)
+
+        name = self._available_project_name()
         project = Project(name)
+
         project.due = self._validate_date(due)
         project.importance = int(importance)
         project.description = description
@@ -174,63 +182,25 @@ class Storage():
         print(f'Edited task {task.name}: {task.description.splitlines()[0]}')
 
     
-    def delete_project(self):
-        pass
-
-    
-    def edit_project(self, project_name, name, due, commit):
+    def edit_project(self, project_name, due, importance, commit):
         project = self._get_project_by_name(project_name)
+
         try: 
             if due is not None: due = self._validate_date(due)
         except AttributeError: pass
 
         if due: project.due = due
-        if name: 
-            old_name = project.name
-            project.name = name
-            
-            for t in self.tasks:
-                if t.project == old_name: t.project = name
                 
-        #if importance: pass
+        if importance: project.importance = importance
 
-        if not any([name, due]):
+        if not any([importance, due]):
             description = get_valid_description(None, initial_message=project.description)
             project.description = description
 
         if not commit: commit = f'Edit project "{project.name}"'
         self.git.commit(self.projects_path, commit)
 
-        print(f'Edited project {old_name if name else project.name}')
-
-
-    def add(self, project, description, after, before, time, commit):
-
-        project = self._project_lookup(project)
-
-        for i, t in enumerate(after):
-            after[i] = self._task_lookup(t)
-
-        for i, t in enumerate(before):
-            before[i] = self._task_lookup(t)
-
-        description = get_valid_description(description)
-
-        name = self._available_task_name()
-        task = Task(name)
-
-        task.description = description
-        task.time = time
-        task.project = project.name
-
-        self.add_following_to_task(after, task=task)
-        self.add_followers_to_task(before, task=task)
-        
-        if not commit: commit = f'Create task "{name}"'
-
-        self.refresh()
-        self.git.commit(task.path, commit)
-        print(f'Created task {task.name}')
+        print(f'Edited project {project.name}')
 
     
     def add_followers_to_task(self, followers, task_name=None, task=None, override=False):
@@ -533,10 +503,12 @@ class Storage():
         for t in self.tasks:
             if p.name in t.projects:
                 project_tasks.append(t)
-                if not project_tasks: return True   # Consider projects with no tasks as active
-                project_tasks = [t for t in project_tasks if t.is_active()]
+        
+        if not project_tasks: return True   # Consider projects with no tasks as active
+        project_tasks = [t for t in project_tasks if t.is_active()]
 
         return len(project_tasks) > 0   # Or projects with active tasks
+
     
     def _is_project_completed(self, p):
         return not self._is_project_active(p)
@@ -545,9 +517,15 @@ class Storage():
     def list_projects(self, sort, limit, active, completed):
 
         if sort in ['importance', 'I']: 
+            self.tasks.sort(key=lambda p: p.name, reverse=True)
             self.projects.sort(key=lambda p: p.urgency, reverse=True)
             self.projects.sort(key=lambda p: p.importance, reverse=True)
+
+        elif sort in ['creation', 'C']:
+            self.tasks.sort(key=lambda p: p.name, reverse=True)
+
         else:
+            self.tasks.sort(key=lambda p: p.name, reverse=True)
             self.projects.sort(key=lambda p: p.importance, reverse=True)
             self.projects.sort(key=lambda p: p.urgency, reverse=True)
 
@@ -562,11 +540,11 @@ class Storage():
 
         if limit < len(projects): projects = projects[:limit]
 
-        print.add((_c.orange + '{:9} {:10} {:^7} {}' + _c.reset).format(
-                'status', 'due-date', 'I/U', 'name'))
+        print.add((_c.orange + '  ID  {:9} {:^10} {:^7} - {}' + _c.reset).format(
+                'status', 'due-date', 'I/U', 'description'))
         for p in projects:
-            print.add((_c.green + '{:9} {:10} {:>3}/{:<3} ' + _c.reset + '{}').format(
-                p.status, p.due, p.importance, p.urgency, p.name))
+            print.add((_c.green + '{:5} {:9} {:10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
+                p.name, p.status, p.due, p.importance, p.urgency, p.description.split(sep='\n')[0]))
 
         print.empty()
 

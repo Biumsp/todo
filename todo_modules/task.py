@@ -1,4 +1,4 @@
-import os, math
+import os
 from .utilities import filesIO, now, never, diff_dates
 from .utilities import decorate_class, debugger, logger
 

@@ -1,34 +1,76 @@
-from .utilities import filesIO, never
+import os
+from .utilities import filesIO, now, never
 from .utilities import decorate_class, debugger, logger
 
 
 class Project():
-    path = ''
+
     ACTIVE = 'active'
     COMPLETED = 'completed'
 
+    storage = None
+    
     def __init__(self, name):
-        self._name = name
-        self.value = 0
+        self.name = name
+        self.iname = int(name)
         self.status = Project.ACTIVE
-        self.info = self.read() # All static attributes of the project 
+        self.path = os.path.join(Project.storage.path, name + '.project')
+        self.info = self.read()
         self.urgency = 0
+
+        self.write() 
+
+
+    def _newborn_info(self):
+        return {
+            'description': '',
+            'importance': 0,
+            'due': never(),
+            'description': '',
+            'created': now()
+        }
+
+
+    def __str__(self):
+        return f'<Project {self.name}>'
+
+
+    def __repr__(self):
+        return f'<Project {self.name}>'
+
+
+    def read(self):
+        if os.path.isfile(self.path):
+            info = filesIO.read(self.path, loads=True)
+        else:
+            info = self._newborn_info()
+        return info
+
+
+    def write(self):
+        filesIO.write(self.path, self.info, dumps=True)
+        
+
+    @property
+    def following(self):
+        return self.info['following']
+        
+    @following.setter
+    def following(self, value):
+        self.info['following'] = value
         self.write()
 
 
     @property
-    def name(self):
-        return self._name
+    def followers(self):
+        return self.info['followers']
         
-    @name.setter
-    def name(self, value):
-        old_value = self.name
-        self._name = value
-        self.info['name'] = value
-        if old_value != value: 
-            self._rename_project(old_value, value)
+    @followers.setter
+    def followers(self, value):
+        self.info['followers'] = value
+        self.write()
 
-
+    
     @property
     def description(self):
         return self.info['description']
@@ -37,7 +79,7 @@ class Project():
     def description(self, value):
         old_value = self.info['description']
         self.info['description'] = value
-        if old_value != value: self.write()      
+        if old_value != value: self.write() 
 
 
     @property
@@ -48,12 +90,18 @@ class Project():
     def due(self, value):
         old_value = self.info['due']
         self.info['due'] = value
-        if old_value != value: self.write()
+        if old_value != value: self.write()    
 
-    
+
     @property
-    def priority(self):
-        return self.info['priority']
+    def project(self):
+        return self.info['project']
+
+    @project.setter
+    def project(self, value):
+        self.info['project'] = value
+        self.projects += [value]
+        self.write()
 
 
     @property
@@ -66,56 +114,23 @@ class Project():
         self.info['importance'] = value
         if old_value != value: self.write()
 
+    
+    @property
+    def created(self):
+        return self.info['created']
+        
+    @created.setter
+    def created(self, value):
+        old_value = self.info['created']
+        self.info['created'] = value
+        if old_value != value: self.write()
 
-    def _newborn_info(self):
-        return {
-            'name': self._name,
-            'importance': 0,
-            'due': never(),
-            'description': ''
-        }
-
-
-    def __str__(self):
-        return f'<Project {self._name}>'
-
-
-    def __repr__(self):
-        return f'<Project {self._name}>'
-
-
-    def read(self):
-        projects = filesIO.read(Project.path, loads=True)
-        try: 
-            info = projects[self._name]
-        except KeyError:
-            info = self._newborn_info()
-
-        return info
-
-
-    def write(self):
-        projects = filesIO.read(Project.path, loads=True)
-        try: 
-            projects[self._name] = self.info
-        except KeyError:
-            projects.update({self._name: self.info})
-
-        filesIO.write(Project.path, projects, dumps=True)
-
-
-    def _rename_project(self, old, new):
-        projects = filesIO.read(Project.path, loads=True)
-
-        del projects[old]
-        projects.update({new: self.info})
-
-        filesIO.write(Project.path, projects, dumps=True)
 
     def is_active(self):
         return self.status == Project.ACTIVE
 
     def is_completed(self):
         return self.status == Project.COMPLETED
+
 
 Project = decorate_class(Project, debugger(logger, 'Project'))
