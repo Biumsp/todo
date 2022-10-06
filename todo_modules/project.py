@@ -24,9 +24,8 @@ class Project():
     def _newborn_info(self):
         return {
             'description': '',
-            'importance': 0,
+            'importance': 100,
             'due': never(),
-            'description': '',
             'created': now()
         }
 

@@ -15,7 +15,7 @@ MY_STATUS = os.getenv('MY_STATUS')
 HOME = os.path.expanduser('~')
 
 
-STORAGE_PATH = os.path.join(HOME, '.test_todo_storage')
+STORAGE_PATH = os.path.join(HOME, '.todo_storage')
 STORAGE_PATH = os.path.join(STORAGE_PATH, MY_STATUS)
 CONFIG = os.path.join(STORAGE_PATH, '.todo_config.json')
 
