@@ -105,8 +105,8 @@ def addp(due, no_due, description, importance, commit):
 
 @cli.command()
 @click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I']), help='Order by')
-@click.option('--limit', '-l', default=DEFAULT_LIMIT, help='Limit the number of results')
-@click.option('--no-limit', '-L', is_flag=True, help='Show all the results')
+@click.option('--limit', '-l', type=int, help='Limit the number of results')
+@click.option('--no-limit', '-L', is_flag=True, default=True, help='Show all the results')
 @click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active projects')
 @click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed projects')
 @click.option('--info', '-i', default=DEFAULT_INFO, count=True, help='Show info')
@@ -114,7 +114,7 @@ def prog(sort, limit, no_limit, active, completed, info):
 	'''List all the projects'''
 
 	# Manipulate input
-	if no_limit: limit = 10000
+	if no_limit and not limit: limit = 10000
 	
 	storage.list_projects(sort, limit, active, completed, info)
 
