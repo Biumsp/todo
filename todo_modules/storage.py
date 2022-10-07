@@ -198,7 +198,7 @@ class Storage():
             project.description = description
 
         if not commit: commit = f'Edit project "{project.name}"'
-        self.git.commit(self.projects_path, commit)
+        self.git.commit(project.path, commit)
 
         print(f'Edited project {project.name}')
 
@@ -434,27 +434,27 @@ class Storage():
 
         if info and one_line:
             if info > 2:
-                print.add((_c.orange + '{:^5} {:^10} {:4} {:^7} - {}' + _c.reset).format(
-                    'ID', 'due-date', 'status', 'I/U', 'description'))
+                print.add((_c.orange + '{:^5} {:^10} {:^6} {:4} {:^7} - {}' + _c.reset).format(
+                    'ID', 'due-date', 'project', 'status', 'I/U', 'description'))
 
                 for t in tasks:
-                    print.add((_c.green + '{:5} {:10} {:^6} {:>3}/{:<3} - ' + _c.reset).format(
-                        t.name, t.due, t.status, t.importance, t.urgency) + t.description.splitlines()[0])
+                    print.add((_c.green + '{:5} {:10} {:^6} {:^6}  {:>3}/{:<3} - ' + _c.reset).format(
+                        t.name, t.due, t.project, t.status, t.importance, t.urgency) + t.description.splitlines()[0])
 
             elif info == 2:
-                print.add((_c.orange + '{:^5} {:^7} {:4} - {}' + _c.reset).format(
-                    'ID', 'I/U','status', 'description'))
+                print.add((_c.orange + '{:^4} {:^7} {:6} - {}' + _c.reset).format(
+                    'ID', 'I/U', 'project', 'description'))
 
                 for t in tasks:
-                    print.add((_c.green + '{:5} {:>3}/{:<3} {:^6} - ' + _c.reset).format(
-                        t.name, t.importance, t.urgency, t.status) + t.description.splitlines()[0])
+                    print.add((_c.green + '{:4} {:>3}/{:<3} {:^6}  - ' + _c.reset).format(
+                        t.name, t.importance, t.urgency, t.project) + t.description.splitlines()[0])
 
             elif info == 1:
-                print.add((_c.orange + '{:^5} {:^7} - {}' + _c.reset).format(
+                print.add((_c.orange + '{:^4} {:^7} - {}' + _c.reset).format(
                     'ID', 'I/U', 'description'))
 
                 for t in tasks:
-                    print.add((_c.green + '{:5} {:>3}/{:<3} - ' + _c.reset).format(
+                    print.add((_c.green + '{:4} {:>3}/{:<3} - ' + _c.reset).format(
                         t.name, t.importance, t.urgency) + t.description.splitlines()[0])
                     
 
@@ -514,7 +514,7 @@ class Storage():
         return not self._is_project_active(p)
 
 
-    def list_projects(self, sort, limit, active, completed):
+    def list_projects(self, sort, limit, active, completed, info):
 
         if sort in ['importance', 'I']: 
             self.tasks.sort(key=lambda p: p.name, reverse=True)
@@ -540,11 +540,36 @@ class Storage():
 
         if limit < len(projects): projects = projects[:limit]
 
-        print.add((_c.orange + '  ID  {:9} {:^10} {:^7} - {}' + _c.reset).format(
+        if info > 2:
+            print.add((_c.orange + '  ID  {:9} {:^10} {:^7} - {}' + _c.reset).format(
                 'status', 'due-date', 'I/U', 'description'))
-        for p in projects:
-            print.add((_c.green + '{:5} {:9} {:10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
-                p.name, p.status, p.due, p.importance, p.urgency, p.description.split(sep='\n')[0]))
+
+            for p in projects:
+                print.add((_c.green + '{:5} {:9} {:10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
+                    p.name, p.status, p.due, p.importance, p.urgency, p.description.split(sep='\n')[0]))
+
+        elif info == 2:
+            print.add((_c.orange + '  ID {:^10} {:^7} - {}' + _c.reset).format(
+                'due-date', 'I/U', 'description'))
+
+            for p in projects:
+                print.add((_c.green + '{:5} {:10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
+                    p.name, p.due, p.importance, p.urgency, p.description.split(sep='\n')[0]))
+
+        elif info == 1:
+            print.add((_c.orange + '  ID  {:^10} - {}' + _c.reset).format(
+                'due-date', 'description'))
+
+            for p in projects:
+                print.add((_c.green + '{:5} {:9} {:10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
+                    p.name, p.due, p.description.split(sep='\n')[0]))
+
+        elif info == 0:
+            print.add((_c.orange + '  ID - {}' + _c.reset).format('description'))
+
+            for p in projects:
+                print.add((_c.green + '{:5} - ' + _c.reset + '{}').format(p.name, p.description.split(sep='\n')[0]))
+
 
         print.empty()
 
