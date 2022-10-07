@@ -482,9 +482,9 @@ class Storage():
 
 
         elif not info and one_line:
-            print.add(_c.orange + '  ID  - description' + _c.reset)
+            print.add(_c.orange + '  ID - description' + _c.reset)
             for t in tasks:
-                out = (_c.green + '{:5} - ' + _c.reset).format(
+                out = (_c.green + '{:4} - ' + _c.reset).format(
                     t.name) + t.description.splitlines()[0] 
                 print.add(out)
 
@@ -553,7 +553,7 @@ class Storage():
                 'due-date', 'I/U', 'description'))
 
             for p in projects:
-                print.add((_c.green + '{:5} {:10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
+                print.add((_c.green + '{:5} {:^10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
                     p.name, p.due, p.importance, p.urgency, p.description.split(sep='\n')[0]))
 
         elif info == 1:
@@ -561,14 +561,14 @@ class Storage():
                 'due-date', 'description'))
 
             for p in projects:
-                print.add((_c.green + '{:5} {:9} {:10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
+                print.add((_c.green + '{:5} {:10} - ' + _c.reset + '{}').format(
                     p.name, p.due, p.description.split(sep='\n')[0]))
 
         elif info == 0:
             print.add((_c.orange + '  ID - {}' + _c.reset).format('description'))
 
             for p in projects:
-                print.add((_c.green + '{:5} - ' + _c.reset + '{}').format(p.name, p.description.split(sep='\n')[0]))
+                print.add((_c.green + '{:4} - ' + _c.reset + '{}').format(p.name, p.description.split(sep='\n')[0]))
 
 
         print.empty()
