@@ -378,13 +378,15 @@ class Storage():
         t = self._get_task_by_name(task_name)
         project = self._get_project_by_name(t.project)
 
-        print('ID: {}\nI/U {}/{}\nstatus: {}\nproject: {}\ndue: {}\ntime: {} [h]\ncreated: {}\ncompleted: {}\ndeleted: {}\n   {}'.format(
+        print('ID: {}\nI/U {}/{}\nstatus: {}\nproject: {}\ndue: {}\ntime: {} [h]\nfollowing: {}\nfollowers: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\n   {}'.format(
             t.name,
             t.importance, t.urgency, 
             t.status, 
             project.name,
             project.due,
             t.time,
+            ''.join(t.following),
+            ''.join(t.followers),
             t.created, t.completed, t.deleted, 
             t.description.replace('\n', '\n   ')
         ))
