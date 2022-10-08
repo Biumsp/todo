@@ -1,3 +1,4 @@
+from turtle import color
 from .utilities import print, filesIO, GitWrapper, num2str, now, never, diff_dates
 from .utilities import fatal_error, get_valid_description
 from .utilities import decorate_class, debugger, logger, _c
@@ -28,14 +29,14 @@ class TodoList():
             filesIO.mkdir(self.path)
 
     
-    def _validate_date(self, date):
+    def _validate_date(self, date, past_is_ok=False):
         today = now(date=True)
         if date.year == 1900: 
             date = date.replace(year=today.year)
-            if date < now(date=True): 
+            if date < now(date=True) and not past_is_ok: 
                 date = date.replace(year=today.year+1)
 
-        if date < now(date=True): print('Warning: date is in the past', color='orange')
+        if date < now(date=True) and not past_is_ok: print('Warning: date is in the past', color='orange')
         return date.strftime(r"%Y-%m-%d")
 
 
@@ -352,6 +353,23 @@ class TodoList():
 
         return math.floor(urgency)
 
+    
+    def report(self, date, machine):
+        
+        date = self._validate_date(date, past_is_ok=True)
+
+        tasks = []
+        for t in self.tasks:
+            if t.completed == date: tasks.append(t)
+
+        print.add(f"Completed tasks on {date}")
+        print.add('{:^4} {:^10} {:^4} - {}'.format('ID', 'due-date', 'P-ID', 'description'), color='orange')
+
+        for t in tasks:
+            print.add('{:4} {:10} {:^4} - {}'.format(t.name, t.due, t.project, t.description.splitlines()[0]))
+
+        print.empty()
+
 
     def refresh(self):
 
@@ -377,7 +395,6 @@ class TodoList():
             p.urgency = self._compute_project_urgency(p)
 
         for t in self.tasks:
-            if not t.is_active(): continue
             projects = [self._get_project_by_name(p) for p in t.projects]
             t.due = self._get_closest_due(projects)
             t.urgency = max([p.urgency for p in projects])
@@ -624,7 +641,7 @@ class TodoList():
 
             for p in projects:
                 print.add((_c.green + '{:5} {:9} {:10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
-                    p.name, p.status, p.due, p.importance, p.urgency, p.description.split(sep='\n')[0]))
+                    p.name, p.status, p.due, p.importance, p.urgency, p.description.splitlines[0]))
 
         elif info == 2:
             print.add((_c.orange + '  ID {:^10} {:^7} - {}' + _c.reset).format(
@@ -632,7 +649,7 @@ class TodoList():
 
             for p in projects:
                 print.add((_c.green + '{:5} {:^10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
-                    p.name, p.due, p.importance, p.urgency, p.description.split(sep='\n')[0]))
+                    p.name, p.due, p.importance, p.urgency, p.description.splitlines[0]))
 
         elif info == 1:
             print.add((_c.orange + '  ID  {:^10} - {}' + _c.reset).format(
@@ -640,13 +657,13 @@ class TodoList():
 
             for p in projects:
                 print.add((_c.green + '{:5} {:10} - ' + _c.reset + '{}').format(
-                    p.name, p.due, p.description.split(sep='\n')[0]))
+                    p.name, p.due, p.description.splitlines[0]))
 
         elif info == 0:
             print.add((_c.orange + '  ID - {}' + _c.reset).format('description'))
 
             for p in projects:
-                print.add((_c.green + '{:4} - ' + _c.reset + '{}').format(p.name, p.description.split(sep='\n')[0]))
+                print.add((_c.green + '{:4} - ' + _c.reset + '{}').format(p.name, p.description.splitlines[0]))
 
 
         print.empty()
