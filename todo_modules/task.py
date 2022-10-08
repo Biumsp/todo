@@ -5,14 +5,15 @@ from .utilities import decorate_class, debugger, logger
 class Task():
     TODO = 'todo'
     DONE = 'done'
+    INPROGRESS = 'in-progress'
     DEL = 'del'
 
-    storage = None
+    todolist = None
     
     def __init__(self, name):
         self.name = name
         self.iname = int(name)
-        self.path = os.path.join(Task.storage.path, name + '.task')
+        self.path = os.path.join(Task.todolist.path, name + '.task')
         self.info = self.read()
         
         self.urgency    = 0
@@ -152,6 +153,11 @@ class Task():
         self.write()
 
 
+    def doing(self):
+        self.info['status'] = Task.INPROGRESS
+        self.write()
+
+
     def restore(self):
         self.info['status'] = Task.TODO
         self.info['completed'] = None
@@ -166,11 +172,15 @@ class Task():
 
 
     def is_active(self):
-        return self.info['status'] == Task.TODO
+        return self.info['status'] == Task.TODO or self.info['status'] == Task.INPROGRESS
 
 
     def is_completed(self):
         return self.info['status'] == Task.DONE
+
+    
+    def is_inprogress(self):
+        return self.info['status'] == Task.INPROGRESS
         
 
     def is_deleted(self):

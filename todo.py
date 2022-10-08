@@ -2,7 +2,7 @@ from email.policy import default
 from todo_modules.utilities import print, filesIO
 from todo_modules.utilities import excludes, validate, never, now
 from todo_modules.utilities import logger
-from todo_modules.storage import Storage
+from todo_modules.todolist import TodoList
 import os, click, sys
 
 # logger.set_state_debug()
@@ -15,15 +15,15 @@ MY_STATUS = os.getenv('MY_STATUS')
 HOME = os.path.expanduser('~')
 
 
-STORAGE_PATH = os.path.join(HOME, '.todo_storage')
-STORAGE_PATH = os.path.join(STORAGE_PATH, MY_STATUS)
-CONFIG = os.path.join(STORAGE_PATH, '.todo_config.json')
+TODOLIST_PATH = os.path.join(HOME, '.todolist')
+TODOLIST_PATH = os.path.join(TODOLIST_PATH, MY_STATUS)
+CONFIG = os.path.join(TODOLIST_PATH, '.config.json')
 
-storage = Storage(STORAGE_PATH)
+todolist = TodoList(TODOLIST_PATH)
 config = filesIO.read(CONFIG, loads=True, fail_silently=True)
 
 if config == 'failed':
-	DEFAULT_CONFIG = os.path.join(HOME, '.myconfig/todo/todo_config.json')
+	DEFAULT_CONFIG = os.path.join(HOME, '.myconfig/todo/config.json')
 	filesIO.copy(DEFAULT_CONFIG, CONFIG)
 	config = filesIO.read(CONFIG, loads=True)
 
@@ -68,7 +68,7 @@ def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
 
 	# List the task, if no sub-command is specified
 	if ctx.invoked_subcommand is None:
-		storage.list(sort, projects, active, completed, deleted, filter, limit, info, one_line)
+		todolist.list(sort, projects, active, completed, deleted, filter, limit, info, one_line)
 
 
 @cli.command(no_args_is_help=True)
@@ -85,7 +85,7 @@ def add(project, description, after, before, time, commit):
 	after  = list(set(after))
 	before = list(set(before))
 
-	storage.add(project, description, after, before, time, commit)
+	todolist.add(project, description, after, before, time, commit)
 
 
 @cli.command()
@@ -100,11 +100,11 @@ def addp(due, no_due, description, importance, commit):
 	# Manipulate input
 	if no_due: due = never()
 
-	storage.add_project(due, description, importance, commit)
+	todolist.add_project(due, description, importance, commit)
 
 
 @cli.command()
-@click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I']), help='Order by')
+@click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I', 'creation', 'C']), help='Order by')
 @click.option('--limit', '-l', type=int, help='Limit the number of results')
 @click.option('--no-limit', '-L', is_flag=True, default=True, help='Show all the results')
 @click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active projects')
@@ -116,7 +116,16 @@ def prog(sort, limit, no_limit, active, completed, info):
 	# Manipulate input
 	if no_limit and not limit: limit = 10000
 	
-	storage.list_projects(sort, limit, active, completed, info)
+	todolist.list_projects(sort, limit, active, completed, info)
+
+
+@cli.command(no_args_is_help=True)
+@click.argument('task-id', type=int, required=True)
+@click.option('--git', '-g', 'commit', type=str, help='Git commit message')
+def doing(task_id, commit):
+	'''Mark a task as in-progress'''
+
+	todolist.doing(task_id, commit)
 
 
 @cli.command(no_args_is_help=True)
@@ -125,7 +134,7 @@ def prog(sort, limit, no_limit, active, completed, info):
 def done(task_id, commit):
 	'''Mark a task as completed'''
 
-	storage.done(task_id, commit)
+	todolist.done(task_id, commit)
 
 
 @cli.command(no_args_is_help=True)
@@ -134,7 +143,7 @@ def done(task_id, commit):
 def restore(task_id, commit):
 	'''Restore a completed or deleted task'''
 
-	storage.restore(task_id, commit)
+	todolist.restore(task_id, commit)
 
 
 @cli.command(no_args_is_help=True)
@@ -144,7 +153,7 @@ def restore(task_id, commit):
 def delete(task_id, commit):
 	'''Delete a task'''
 
-	storage.delete(task_id, commit)
+	todolist.delete(task_id, commit)
 
 
 @cli.command(no_args_is_help=True)
@@ -154,7 +163,7 @@ def delete(task_id, commit):
 def deletep(project_id, commit):
 	'''Delete a project'''
 
-	storage.delete(project_id, commit)
+	todolist.delete(project_id, commit)
 
 
 @cli.command(no_args_is_help=True)
@@ -176,7 +185,7 @@ def edit(task_id, project, time, after, before, override, commit):
 	validate(excludes(after, project), 'cannot modify project and dependencies at the same time')
 	validate(excludes(before, project), 'cannot modify project and dependencies at the same time')
 
-	storage.edit(task_id, project, time, after, before, override, commit)
+	todolist.edit(task_id, project, time, after, before, override, commit)
 
 
 @cli.command(no_args_is_help=True)
@@ -194,7 +203,7 @@ def editp(project_id, due, delete_due, importance, commit):
 	# Manipulate input
 	if delete_due: due = never()
 
-	storage.edit_project(project_id, due, importance, commit)
+	todolist.edit_project(project_id, due, importance, commit)
 
 
 @cli.command(no_args_is_help=True)
@@ -202,7 +211,7 @@ def editp(project_id, due, delete_due, importance, commit):
 def show(task_id):
 	'''Show all info about the task'''
 
-	storage.show(task_id)
+	todolist.show(task_id)
 	
 
 @cli.command(no_args_is_help=True)
@@ -210,18 +219,18 @@ def show(task_id):
 def showp(project_id):
 	'''Show all info about the project'''
 
-	storage.show_project(project_id)
+	todolist.show_project(project_id)
 
 
 @cli.command()
 def push():
-    '''Push the storage to remote'''
+    '''Push the todolist to remote'''
     
-    storage.git.push()
+    todolist.git.push()
 
 
 @cli.command()
 def pull():
-    '''Pull the storage from remote'''
+    '''Pull the todolist from remote'''
     
-    storage.git.pull()
+    todolist.git.pull()

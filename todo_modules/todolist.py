@@ -8,15 +8,15 @@ import os, re, math
 class LookupError(Exception): pass
 class NameError(Exception): pass
 
-class Storage():
+class TodoList():
 
     def __init__(self, path):
         self.path = path
         self.__init()
         self.git = GitWrapper(path)
 
-        Project.storage = self
-        Task.storage = self
+        Project.todolist = self
+        Task.todolist = self
 
         self.tasks = self._get_tasks()
         self.projects = self._get_projects()
@@ -255,14 +255,14 @@ class Storage():
 
 
     def __str__(self):
-        return f'<Storage>'
+        return f'<TodoList>'
 
 
     def __repr__(self):
-        return f'<Storage>'
+        return f'<TodoList>'
 
 
-    def done(self, task_name, commit=None):
+    def done(self, task_name, commit):
         task = self._get_task_by_name(task_name)
 
         task.done()
@@ -271,6 +271,17 @@ class Storage():
         self.git.commit(task.path, commit)
 
         print(f'Completed task {task.name}: {task.description.splitlines()[0]}')
+
+    
+    def doing(self, task_name, commit):
+        task = self._get_task_by_name(task_name)
+
+        task.doing()
+
+        if not commit: commit = f'Mark task "{task_name}" as in-progress'
+        self.git.commit(task.path, commit)
+
+        print(f'Working on task {task.name}: {task.description.splitlines()[0]}')
 
     
     def restore(self, task_name, commit=None):
@@ -420,8 +431,10 @@ class Storage():
 
         projects = [self._project_lookup(p) for p in projects]
         tasks = []
+        inprogress = []
         for t in self.tasks:
             stop = False
+            if t.is_inprogress(): inprogress.append(t); continue
             if t.is_deleted() and not deleted: continue
             if t.is_completed() and not completed: continue
             if t.is_active() and not active: continue
@@ -432,28 +445,48 @@ class Storage():
 
             tasks.append(t)
 
+
         if limit < len(tasks): tasks = tasks[:limit]
 
         if info and one_line:
             if info > 2:
-                print.add((_c.orange + '{:^5} {:^10} {:^6} {:4} {:^7} - {}' + _c.reset).format(
-                    'ID', 'due-date', 'project', 'status', 'I/U', 'description'))
+                print.add((_c.orange + '{:^5} {:^10} {:^4} {:^5} {:^7} - {}' + _c.reset).format(
+                    'ID', 'due-date', 'P-ID', 'status', 'I/U', 'description'))
+
+                for t in inprogress:
+                    print.add((_c.green + '{:5} {:10} {:^4}  {:^4}  {:>3}/{:<3} - ' + _c.reset).format(
+                        t.name, t.due, t.project, "doing", t.importance, t.urgency) + t.description.splitlines()[0])
+                
+                if inprogress: print.add("")
 
                 for t in tasks:
-                    print.add((_c.green + '{:5} {:10} {:^6} {:^6}  {:>3}/{:<3} - ' + _c.reset).format(
+                    print.add((_c.green + '{:5} {:10} {:^4}  {:^4}  {:>3}/{:<3} - ' + _c.reset).format(
                         t.name, t.due, t.project, t.status, t.importance, t.urgency) + t.description.splitlines()[0])
 
+
             elif info == 2:
-                print.add((_c.orange + '{:^4} {:^7} {:6} - {}' + _c.reset).format(
-                    'ID', 'I/U', 'project', 'description'))
+                print.add((_c.orange + '{:^4} {:^7} {:4} - {}' + _c.reset).format(
+                    'ID', 'I/U', 'P-ID', 'description'))
+
+                for t in inprogress:
+                    print.add((_c.green + '{:4} {:>3}/{:<3} {:^4} - ' + _c.reset).format(
+                        t.name, t.importance, t.urgency, t.project) + t.description.splitlines()[0])
+                
+                if inprogress: print.add("")
 
                 for t in tasks:
-                    print.add((_c.green + '{:4} {:>3}/{:<3} {:^6}  - ' + _c.reset).format(
+                    print.add((_c.green + '{:4} {:>3}/{:<3} {:^4} - ' + _c.reset).format(
                         t.name, t.importance, t.urgency, t.project) + t.description.splitlines()[0])
 
             elif info == 1:
                 print.add((_c.orange + '{:^4} {:^7} - {}' + _c.reset).format(
                     'ID', 'I/U', 'description'))
+
+                for t in inprogress:
+                    print.add((_c.green + '{:4} {:>3}/{:<3} - ' + _c.reset).format(
+                        t.name, t.importance, t.urgency) + t.description.splitlines()[0])
+                
+                if inprogress: print.add("")
 
                 for t in tasks:
                     print.add((_c.green + '{:4} {:>3}/{:<3} - ' + _c.reset).format(
@@ -462,6 +495,15 @@ class Storage():
 
         elif info and not one_line:
             if info > 2:
+
+                for t in inprogress:
+                    out = (_c.orange + 'ID: {:5}\nstatus: {:^6}\ndue-date: {:10}\nI/U: {:>3}/{:<3}' + _c.reset).format(
+                        t.name, t.status, t.due, t.importance, t.urgency)
+                    out += '\n   ' + t.description.replace('\n', '\n   ')
+                    print.add(out)
+
+                if inprogress: print.add("")
+
                 for t in tasks:
                     out = (_c.orange + 'ID: {:5}\nstatus: {:^6}\ndue-date: {:10}\nI/U: {:>3}/{:<3}' + _c.reset).format(
                         t.name, t.status, t.due, t.importance, t.urgency)
@@ -469,6 +511,15 @@ class Storage():
                     print.add(out)
 
             elif info == 2:
+
+                for t in inprogress:
+                    out = (_c.orange + 'ID: {:5}\nI/U: {:>3}/{:<3}\nstatus: {:^6}' + _c.reset).format(
+                        t.name, t.importance, t.urgency, t.status)
+                    out += '\n   ' + t.description.replace('\n', '\n   ')
+                    print.add(out)
+
+                if inprogress: print.add("")
+
                 for t in tasks:
                     out = (_c.orange + 'ID: {:5}\nI/U: {:>3}/{:<3}\nstatus: {:^6}' + _c.reset).format(
                         t.name, t.importance, t.urgency, t.status)
@@ -476,6 +527,15 @@ class Storage():
                     print.add(out)
 
             elif info == 1:
+
+                for t in inprogress:
+                    out = (_c.orange + 'ID: {:5}\nI/U: {:>3}/{:<3}' + _c.reset).format(
+                        t.name, t.importance, t.urgency)
+                    out += '\n   ' + t.description.replace('\n', '\n   ')
+                    print.add(out)
+
+                if inprogress: print.add("")
+
                 for t in tasks:
                     out = (_c.orange + 'ID: {:5}\nI/U: {:>3}/{:<3}' + _c.reset).format(
                         t.name, t.importance, t.urgency)
@@ -485,6 +545,14 @@ class Storage():
 
         elif not info and one_line:
             print.add(_c.orange + '  ID - description' + _c.reset)
+
+            for t in inprogress:
+                out = (_c.green + '{:4} - ' + _c.reset).format(
+                    t.name) + t.description.splitlines()[0] 
+                print.add(out)
+
+            if inprogress: print.add("")
+
             for t in tasks:
                 out = (_c.green + '{:4} - ' + _c.reset).format(
                     t.name) + t.description.splitlines()[0] 
@@ -492,6 +560,14 @@ class Storage():
 
 
         elif not info and not one_line:
+
+            for t in inprogress:
+                out = ((_c.green + 'ID: {}' + _c.reset).format(t.name))
+                out += '\n   ' + t.description.replace('\n', '\n   ')
+                print.add(out)
+
+            if inprogress: print.add("") 
+
             for t in tasks:
                 out = ((_c.green + 'ID: {}' + _c.reset).format(t.name))
                 out += '\n   ' + t.description.replace('\n', '\n   ')
@@ -575,4 +651,4 @@ class Storage():
 
         print.empty()
 
-Storage = decorate_class(Storage, debugger(logger, 'Storage'))
+TodoList = decorate_class(TodoList, debugger(logger, 'TodoList'))

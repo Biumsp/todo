@@ -8,13 +8,13 @@ class Project():
     ACTIVE = 'active'
     COMPLETED = 'completed'
 
-    storage = None
+    todolist = None
     
     def __init__(self, name):
         self.name = name
         self.iname = int(name)
         self.status = Project.ACTIVE
-        self.path = os.path.join(Project.storage.path, name + '.project')
+        self.path = os.path.join(Project.todolist.path, name + '.project')
         self.info = self.read()
         self.urgency = 0
 
