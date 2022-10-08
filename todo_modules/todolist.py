@@ -354,21 +354,26 @@ class TodoList():
         return math.floor(urgency)
 
     
-    def report(self, date, machine):
+    def report(self, date_range, machine):
         
-        date = self._validate_date(date, past_is_ok=True)
+        start = self._validate_date(date_range[0], past_is_ok=True)
+        stop  = self._validate_date(date_range[1], past_is_ok=True)
 
         tasks = []
         for t in self.tasks:
-            if t.completed == date: tasks.append(t)
+            if t.completed and start <= t.completed <= stop: tasks.append(t)
 
-        print.add(f"Completed tasks on {date}")
-        print.add('{:^4} {:^10} {:^4} - {}'.format('ID', 'due-date', 'P-ID', 'description'), color='orange')
+        if not machine:
 
-        for t in tasks:
-            print.add('{:4} {:10} {:^4} - {}'.format(t.name, t.due, t.project, t.description.splitlines()[0]))
+            if start == stop: print.add(f"Completed tasks on {start}")
+            else: print.add(f"Completed tasks between {start} and {stop}")
 
-        print.empty()
+            print.add('{:^4} {:^10} {:^4} - {}'.format('ID', 'due-date', 'P-ID', 'description'), color='orange')
+
+            for t in tasks:
+                print.add('{:4} {:10} {:^4} - {}'.format(t.name, t.due, t.project, t.description.splitlines()[0]))
+
+            print.empty()
 
 
     def refresh(self):
