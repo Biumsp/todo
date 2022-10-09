@@ -1,11 +1,9 @@
-import sched
-from turtle import color
 from .utilities import print, filesIO, GitWrapper, num2str, now, never, diff_dates
 from .utilities import fatal_error, get_valid_description
 from .utilities import decorate_class, debugger, logger, _c
 from .task import Task
 from .project import Project
-import os, re, math
+import os, math
 
 class LookupError(Exception): pass
 class NameError(Exception): pass
@@ -638,6 +636,37 @@ class TodoList():
         print.add('    in progress: ' + str(len(inprogress_tasks)))
         print.add('    active: ' + str(len(active_tasks)))
         print.add('    completed: ' + str(len(completed_tasks)))
+
+        print.empty()
+
+    
+    def priority(self):
+        self.projects.sort(key=lambda p: p.name, reverse=True)
+        self.projects.sort(key=lambda p: p.importance, reverse=True)
+        self.projects.sort(key=lambda p: p.urgency, reverse=True)
+        projects = [p for p in self.projects if self._is_project_active(p)]
+
+        if not projects: print('No active projects in the todo list'); return
+        if len(projects) == 1: 
+            print.add("P-ID priority - description")
+            print.add(f"{projects[0].name:4}    1    - {projects[0].description.splitlines()[0]}")
+
+        else:
+            p0 = projects[0]
+            p1 = projects[1]
+
+            u0, u1 = max(p0.urgency, 0.0001), max(p1.urgency, 0.0001)
+
+            pt0, pt1 = u0/(u0+u1), u1/(u0+u1)
+
+            print.add("P-ID priority - description", color='orange')
+
+            if pt0 > pt1:
+                print.add(f"{p0.name:4}    {round(pt0, 1)}   - {p0.description.splitlines()[0]}")
+                print.add(f"{p1.name:4}    {round(pt1, 1)}   - {p1.description.splitlines()[0]}")
+            else:
+                print.add(f"{p1.name:4}    {round(pt1, 1)}   - {p1.description.splitlines()[0]}")
+                print.add(f"{p0.name:4}    {round(pt0, 1)}   - {p0.description.splitlines()[0]}")
 
         print.empty()
 

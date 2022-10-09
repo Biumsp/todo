@@ -224,6 +224,13 @@ def showp(project_id):
 	todolist.show_project(project_id)
 
 
+@cli.command()
+def priority():
+	'''Compute projects priorities'''
+
+	todolist.priority()
+
+
 @cli.command(no_args_is_help=True)
 @click.option('--date', '-d', default=None, type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Report date')
 @click.option('--today', '-t', is_flag=True, help='Date is today')
@@ -240,8 +247,8 @@ def report(date, today, yesterday, date_range, machine):
 
 	# Data manipulation
 	if today: date = now(date=True)
-	if yesterday: print("--yesterday not yet implemented")
-	if machine: print("--machine not yet implemented")
+	if yesterday: print("--yesterday not yet implemented"); return
+	if machine: print("--machine not yet implemented"); return
 	if not date_range: date_range = (date, date)
 
 	todolist.report(date_range, machine)
