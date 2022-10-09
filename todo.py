@@ -45,12 +45,13 @@ DEFAULT_LIMIT = config['default_limit']
 @click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active tasks')
 @click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed tasks')
 @click.option('--deleted / --no-deleted', '-d / -D', is_flag=True, default=False, help='Include deleted tasks')
+@click.option('--waiting / --no-waiting', '-w / -W', is_flag=True, default=False, help='Include scheduled tasks')
 @click.option('--filter', '-f', default='', help='Filter by match in description')
 @click.option('--limit', '-l', default=DEFAULT_LIMIT, help='Limit the number of results')
 @click.option('--no-limit', '-L', is_flag=True, help='Show all the results')
 @click.option('--one-line / --multi-line', '-o / -O', is_flag=True, default=DEFAULT_ONELINE, help='Short output')
 def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
-		project, active, completed, deleted, filter, limit, no_limit, info, one_line):
+		project, active, completed, deleted, waiting, filter, limit, no_limit, info, one_line):
 	'''See all your tasks'''
 
 	# Validate input
@@ -68,7 +69,7 @@ def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
 
 	# List the task, if no sub-command is specified
 	if ctx.invoked_subcommand is None:
-		todolist.list(sort, projects, active, completed, deleted, filter, limit, info, one_line)
+		todolist.list(sort, projects, active, completed, deleted, waiting, filter, limit, info, one_line)
 
 
 @cli.command(no_args_is_help=True)
@@ -77,15 +78,16 @@ def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
 @click.option('--after', '-a', multiple=True, help='The tasks it depends on')
 @click.option('--before', '-b', multiple=True, help='The tasks depending on this task')
 @click.option('--time', '-t', default=1., help='Estimated time to complete the task')
+@click.option('--wait', '-w', default=None, type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Create the task on this date')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def add(project, description, after, before, time, commit):
+def add(project, description, after, before, time, wait, commit):
 	'''Add a new task'''
 
 	# Manipulate input
 	after  = list(set(after))
 	before = list(set(before))
 
-	todolist.add(project, description, after, before, time, commit)
+	todolist.add(project, description, after, before, time, wait, commit)
 
 
 @cli.command()
@@ -243,6 +245,13 @@ def report(date, today, yesterday, date_range, machine):
 	if not date_range: date_range = (date, date)
 
 	todolist.report(date_range, machine)
+
+
+@cli.command()
+def stats():
+	'''Stats about the todo list'''
+
+	todolist.stats()
 
 
 @cli.command()

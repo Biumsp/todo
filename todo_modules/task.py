@@ -1,3 +1,4 @@
+from asyncio import FastChildWatcher
 import os
 from .utilities import filesIO, now, never, diff_dates
 from .utilities import decorate_class, debugger, logger
@@ -185,5 +186,10 @@ class Task():
 
     def is_deleted(self):
         return self.info['deleted'] is not None
+
+
+    def is_scheduled(self):
+        return self.info['created'] > now()
+        
 
 Task = decorate_class(Task, debugger(logger, 'Task'))

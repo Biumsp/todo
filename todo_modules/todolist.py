@@ -1,3 +1,4 @@
+import sched
 from turtle import color
 from .utilities import print, filesIO, GitWrapper, num2str, now, never, diff_dates
 from .utilities import fatal_error, get_valid_description
@@ -102,7 +103,7 @@ class TodoList():
             return '0000'
 
 
-    def add(self, project, description, after, before, time, commit):
+    def add(self, project, description, after, before, time, wait, commit):
 
         project = self._project_lookup(project)
 
@@ -116,6 +117,8 @@ class TodoList():
 
         name = self._available_task_name()
         task = Task(name)
+
+        if wait: task.created = self._validate_date(wait)
 
         task.description = description
         task.time = time
@@ -436,7 +439,7 @@ class TodoList():
             p.description.replace('\n', '\n   ')
         ))
 
-    def list(self, sort, projects, active, completed, deleted, filter, limit, info, one_line):
+    def list(self, sort, projects, active, completed, deleted, waiting, filter, limit, info, one_line):
 
         if sort in ['importance', 'I']: 
             self.tasks.sort(key=lambda t: t.name, reverse=True)
@@ -454,9 +457,11 @@ class TodoList():
         projects = [self._project_lookup(p) for p in projects]
         tasks = []
         inprogress = []
+        scheduled = []
         for t in self.tasks:
             stop = False
             if t.is_inprogress(): inprogress.append(t); continue
+            if t.is_scheduled(): scheduled.append(t); continue
             if t.is_deleted() and not deleted: continue
             if t.is_completed() and not completed: continue
             if t.is_active() and not active: continue
@@ -469,6 +474,26 @@ class TodoList():
 
 
         if limit < len(tasks): tasks = tasks[:limit]
+
+        if waiting:
+            if one_line:
+                print.add((_c.orange + '{:^5} {:^10} {:^4} {:^5} {:^7} - {}' + _c.reset).format(
+                        'ID', 'due-date', 'P-ID', 'status', 'I/U', 'description'))
+
+                for t in scheduled:
+                    print.add((_c.green + '{:5} {:10} {:^4}  {:^4}  {:>3}/{:<3} - ' + _c.reset).format(
+                        t.name, t.due, t.project, t.status, t.importance, t.urgency) + t.description.splitlines()[0])
+
+            else:
+                for t in tasks:
+                    out = (_c.orange + 'ID: {:5}\nstatus: {:^6}\ndue-date: {:10}\nI/U: {:>3}/{:<3}' + _c.reset).format(
+                        t.name, t.status, t.due, t.importance, t.urgency)
+                    out += '\n   ' + t.description.replace('\n', '\n   ')
+                    print.add(out)
+
+        
+            print.empty(); return
+
 
         if info and one_line:
             if info > 2:
