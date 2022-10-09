@@ -597,6 +597,25 @@ class TodoList():
 
         print.empty()
 
+
+    def stats(self):
+
+        active_projects  = [p for p in self.projects if self._is_project_active(p)]
+        inprogress_tasks = [t for t in self.tasks if t.is_inprogress()]
+        active_tasks     = [t for t in self.tasks if t.is_active()]
+        completed_tasks  = [t for t in self.tasks if t.is_completed()]
+        
+        print.add('Projects', color='orange')
+        print.add('    active: ' + str(len(active_projects)))
+        print.add('    completed: ' + str(len(self.projects) - len(active_projects)))
+
+        print.add('Tasks', color='orange')
+        print.add('    in progress: ' + str(len(inprogress_tasks)))
+        print.add('    active: ' + str(len(active_tasks)))
+        print.add('    completed: ' + str(len(completed_tasks)))
+
+        print.empty()
+
     
     def _is_project_active(self, p):
         project_tasks = []
@@ -646,15 +665,15 @@ class TodoList():
 
             for p in projects:
                 print.add((_c.green + '{:5} {:9} {:10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
-                    p.name, p.status, p.due, p.importance, p.urgency, p.description.splitlines[0]))
+                    p.name, p.status, p.due, p.importance, p.urgency, p.description.splitlines()[0]))
 
         elif info == 2:
-            print.add((_c.orange + '  ID {:^10} {:^7} - {}' + _c.reset).format(
+            print.add((_c.orange + '  ID {:^10}  {:^7} - {}' + _c.reset).format(
                 'due-date', 'I/U', 'description'))
 
             for p in projects:
-                print.add((_c.green + '{:5} {:^10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
-                    p.name, p.due, p.importance, p.urgency, p.description.splitlines[0]))
+                print.add((_c.green + '{:5} {:10} {:>3}/{:<3} - ' + _c.reset + '{}').format(
+                    p.name, p.due, p.importance, p.urgency, p.description.splitlines()[0]))
 
         elif info == 1:
             print.add((_c.orange + '  ID  {:^10} - {}' + _c.reset).format(
@@ -662,13 +681,13 @@ class TodoList():
 
             for p in projects:
                 print.add((_c.green + '{:5} {:10} - ' + _c.reset + '{}').format(
-                    p.name, p.due, p.description.splitlines[0]))
+                    p.name, p.due, p.description.splitlines()[0]))
 
         elif info == 0:
             print.add((_c.orange + '  ID - {}' + _c.reset).format('description'))
 
             for p in projects:
-                print.add((_c.green + '{:4} - ' + _c.reset + '{}').format(p.name, p.description.splitlines[0]))
+                print.add((_c.green + '{:4} - ' + _c.reset + '{}').format(p.name, p.description.splitlines()[0]))
 
 
         print.empty()
