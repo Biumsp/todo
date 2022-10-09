@@ -78,7 +78,10 @@ class TodoList():
     def _project_lookup(self, name):
         '''Matches the name with the existing projects and completes it'''
 
-        matches = [p for p in self.projects if p.iname == int(name)]
+        try: name = int(name)
+        except: fatal_error(f'no project numbered "{name}"')
+
+        matches = [p for p in self.projects if p.iname == name]
 
         if len(matches) == 0:
             fatal_error(f'no project numbered "{name}"')
@@ -340,6 +343,8 @@ class TodoList():
         WORKING_HOURS_PER_DAY = 4
         
         tasks = [t for t in self.tasks if p.name in t.projects and t.is_active()]
+
+        if not tasks: return 0
 
         # Estimated completion time
         time = max(sum(t.time for t in tasks), 0.001)
