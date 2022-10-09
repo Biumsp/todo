@@ -152,13 +152,15 @@ class TodoList():
         print(f'Created project {name}')
 
 
-    def edit(self, name, project, time, after, before, override, commit):
+    def edit(self, name, project, time, wait, after, before, override, commit):
         task = self._get_task_by_name(name)
 
-        if not any([project, after, before, time]):
+        if not any([project, after, before, time, wait]):
             task.description = get_valid_description(None, task.description)
 
         if project: project = self._project_lookup(project)
+
+        if wait: task.created = self._validate_date(wait)
 
         for i, t in enumerate(after):
             after[i] = self._task_lookup(t)
@@ -719,7 +721,7 @@ class TodoList():
         if limit < len(projects): projects = projects[:limit]
 
         if info > 2:
-            print.add((_c.orange + '  ID  {:9} {:^10} {:^7} - {}' + _c.reset).format(
+            print.add((_c.orange + 'P-ID  {:9} {:^10} {:^7} - {}' + _c.reset).format(
                 'status', 'due-date', 'I/U', 'description'))
 
             for p in projects:
@@ -727,7 +729,7 @@ class TodoList():
                     p.name, p.status, p.due, p.importance, p.urgency, p.description.splitlines()[0]))
 
         elif info == 2:
-            print.add((_c.orange + '  ID {:^10}  {:^7} - {}' + _c.reset).format(
+            print.add((_c.orange + 'P-ID {:^10}  {:^7} - {}' + _c.reset).format(
                 'due-date', 'I/U', 'description'))
 
             for p in projects:
@@ -735,7 +737,7 @@ class TodoList():
                     p.name, p.due, p.importance, p.urgency, p.description.splitlines()[0]))
 
         elif info == 1:
-            print.add((_c.orange + '  ID  {:^10} - {}' + _c.reset).format(
+            print.add((_c.orange + 'P-ID  {:^10} - {}' + _c.reset).format(
                 'due-date', 'description'))
 
             for p in projects:
@@ -743,7 +745,7 @@ class TodoList():
                     p.name, p.due, p.description.splitlines()[0]))
 
         elif info == 0:
-            print.add((_c.orange + '  ID - {}' + _c.reset).format('description'))
+            print.add((_c.orange + 'P-ID - {}' + _c.reset).format('description'))
 
             for p in projects:
                 print.add((_c.green + '{:4} - ' + _c.reset + '{}').format(p.name, p.description.splitlines()[0]))

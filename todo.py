@@ -172,11 +172,12 @@ def deletep(project_id, commit):
 @click.argument('task-id', type=int, required=True)
 @click.option('--project', '-p', help='New project')
 @click.option('--time', '-t', type=float, help='Estimated time to complete the task')
+@click.option('--wait', '-w', default=None, type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Create the task on this date')
 @click.option('--after', '-a', multiple=True, help='The tasks it depends on')
 @click.option('--before', '-b', multiple=True, help='The tasks depending on this task')
 @click.option('--override', '-O', is_flag=True, help='Override existing info')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def edit(task_id, project, time, after, before, override, commit):
+def edit(task_id, project, time, wait, after, before, override, commit):
 	'''Edit a task'''
 
 	# Manipulate input
@@ -187,7 +188,7 @@ def edit(task_id, project, time, after, before, override, commit):
 	validate(excludes(after, project), 'cannot modify project and dependencies at the same time')
 	validate(excludes(before, project), 'cannot modify project and dependencies at the same time')
 
-	todolist.edit(task_id, project, time, after, before, override, commit)
+	todolist.edit(task_id, project, time, wait, after, before, override, commit)
 
 
 @cli.command(no_args_is_help=True)

@@ -173,6 +173,7 @@ class Task():
 
 
     def is_active(self):
+        if self.info['created'] > now(): return False
         return self.info['status'] == Task.TODO or self.info['status'] == Task.INPROGRESS
 
 
@@ -190,6 +191,6 @@ class Task():
 
     def is_scheduled(self):
         return self.info['created'] > now()
-        
+
 
 Task = decorate_class(Task, debugger(logger, 'Task'))
