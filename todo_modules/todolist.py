@@ -469,7 +469,6 @@ class TodoList():
         scheduled = []
         for t in self.tasks:
             stop = False
-            if t.is_inprogress(): inprogress.append(t); continue
             if t.is_scheduled(): scheduled.append(t); continue
             if t.is_deleted() and not deleted: continue
             if t.is_completed() and not completed: continue
@@ -478,6 +477,7 @@ class TodoList():
             for p in projects: 
                 if p.name not in t.projects: stop = True
             if stop: continue
+            if t.is_inprogress(): inprogress.append(t); continue
 
             tasks.append(t)
 
