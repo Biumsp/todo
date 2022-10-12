@@ -373,7 +373,7 @@ class TodoList():
 
         tasks = []
         for t in self.tasks:
-            if t.completed and start <= t.completed <= stop: tasks.append(t)
+            if t.completed and start <= t.completed <= stop and t.time > 0: tasks.append(t)
 
         if not machine:
 
