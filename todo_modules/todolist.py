@@ -1,3 +1,4 @@
+from tkinter.messagebox import NO
 from .utilities import print, filesIO, GitWrapper, num2str, now, never, diff_dates
 from .utilities import fatal_error, get_valid_description
 from .utilities import decorate_class, debugger, logger, _c
@@ -67,7 +68,10 @@ class TodoList():
     def _task_lookup(self, name):
         '''Matches the name with the existing tasks and completes it'''
 
-        matches = [t for t in self.tasks if t.iname == int(name)]
+        try: name = int(name)
+        except: fatal_error(f'no task numbered "{name}"')
+
+        matches = [t for t in self.tasks if t.iname == name]
 
         if len(matches) == 0:
             fatal_error(f'no task numbered "{name}"')
@@ -155,7 +159,7 @@ class TodoList():
     def edit(self, name, project, time, wait, after, before, override, commit):
         task = self._get_task_by_name(name)
 
-        if not any([project, after, before, time, wait]):
+        if not any([project, after, before, time is not None, wait]):
             task.description = get_valid_description(None, task.description)
 
         if project: project = self._project_lookup(project)
@@ -170,7 +174,7 @@ class TodoList():
 
         if project: task.project = project.name
 
-        if time: task.time = time
+        if time is not None: task.time = time
 
         if after:
             self.add_following_to_task(after, task=task, override=override)

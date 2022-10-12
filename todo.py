@@ -1,4 +1,5 @@
 from email.policy import default
+from operator import sub
 from todo_modules.utilities import print, filesIO
 from todo_modules.utilities import excludes, validate, never, now
 from todo_modules.utilities import logger
@@ -78,7 +79,7 @@ def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
 @click.option('--after', '-a', multiple=True, help='The tasks it depends on')
 @click.option('--before', '-b', multiple=True, help='The tasks depending on this task')
 @click.option('--time', '-t', default=1., help='Estimated time to complete the task')
-@click.option('--wait', '-w', default=None, type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Create the task on this date')
+@click.option('--wait', '-w', default=None, type=click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d']), help='Create the task on this date')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
 def add(project, description, after, before, time, wait, commit):
 	'''Add a new task'''
@@ -91,7 +92,7 @@ def add(project, description, after, before, time, wait, commit):
 
 
 @cli.command()
-@click.option('--due', '-due', default=now(), type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
+@click.option('--due', '-due', default=now(), type=click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d']), help='Due date')
 @click.option('--no-due', '-D', is_flag=True, help='No due date')
 @click.option('--description', '-d', type=str, help='Project description')
 @click.option('--importance', '-I', default=100, show_default=True, help='Project relative importance')
@@ -107,8 +108,8 @@ def addp(due, no_due, description, importance, commit):
 
 @cli.command()
 @click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I', 'creation', 'C']), help='Order by')
-@click.option('--limit', '-l', type=int, help='Limit the number of results')
-@click.option('--no-limit', '-L', is_flag=True, default=True, help='Show all the results')
+@click.option('--limit', '-l', type=int, default=100, help='Limit the number of results')
+@click.option('--no-limit', '-L', is_flag=True, default=False, help='Show all the results')
 @click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active projects')
 @click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed projects')
 @click.option('--info', '-i', default=DEFAULT_INFO, count=True, help='Show info')
@@ -116,7 +117,7 @@ def prog(sort, limit, no_limit, active, completed, info):
 	'''List all the projects'''
 
 	# Manipulate input
-	if no_limit and not limit: limit = 10000
+	if no_limit: limit = 10000
 	
 	todolist.list_projects(sort, limit, active, completed, info)
 
@@ -172,7 +173,7 @@ def deletep(project_id, commit):
 @click.argument('task-id', type=int, required=True)
 @click.option('--project', '-p', help='New project')
 @click.option('--time', '-t', type=float, help='Estimated time to complete the task')
-@click.option('--wait', '-w', default=None, type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Create the task on this date')
+@click.option('--wait', '-w', default=None, type=click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d', ]), help='Create the task on this date')
 @click.option('--after', '-a', multiple=True, help='The tasks it depends on')
 @click.option('--before', '-b', multiple=True, help='The tasks depending on this task')
 @click.option('--override', '-O', is_flag=True, help='Override existing info')
@@ -193,7 +194,7 @@ def edit(task_id, project, time, wait, after, before, override, commit):
 
 @cli.command(no_args_is_help=True)
 @click.argument('project-id', type=int, required=True)
-@click.option('--due', '-due', default=None, type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Due date')
+@click.option('--due', '-due', default=None, type=click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d']), help='Due date')
 @click.option('--delete-due', '-D', is_flag=True, help='Due date')
 @click.option('--importance', '-I', type=int, help='Project relative importance')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
@@ -233,10 +234,10 @@ def priority():
 
 
 @cli.command(no_args_is_help=True)
-@click.option('--date', '-d', default=None, type=click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), help='Report date')
+@click.option('--date', '-d', default=None, type=click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d']), help='Report date')
 @click.option('--today', '-t', is_flag=True, help='Date is today')
 @click.option('--yesterday', '-y', is_flag=True, help='Date is yesterday')
-@click.option('--date-range', '-r', default=None, type=(click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d']), click.DateTime(formats=[r'%Y%m%d', r'%Y-%m-%d', r'%m-%d', r'%m%d'])), help='Report date')
+@click.option('--date-range', '-r', default=None, type=(click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d']), click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d', ])), help='Report date')
 @click.option('--machine', '-m', is_flag=True, help='Machine-readable output format')
 def report(date, today, yesterday, date_range, machine):
 	'''Create a report of completed tasks on a specific date'''
