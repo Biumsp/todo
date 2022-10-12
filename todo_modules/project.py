@@ -109,6 +109,7 @@ class Project():
 
     @importance.setter
     def importance(self, value: int):
+        if value > 999: value = 999
         old_value = self.info['importance']
         self.info['importance'] = value
         if old_value != value: self.write()
