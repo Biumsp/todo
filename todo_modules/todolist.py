@@ -366,7 +366,7 @@ class TodoList():
         return math.floor(urgency)
 
     
-    def report(self, date_range, machine):
+    def report(self, date_range, machine, info):
         
         start = self._validate_date(date_range[0], past_is_ok=True)
         stop  = self._validate_date(date_range[1], past_is_ok=True)
@@ -380,10 +380,25 @@ class TodoList():
             if start == stop: print.add(f"Completed tasks on {start}")
             else: print.add(f"Completed tasks between {start} and {stop}")
 
-            print.add('{:^4} {:^10} {:^4} - {}'.format('ID', 'due-date', 'P-ID', 'description'), color='orange')
+            print.add(f"Total: {len(tasks)} tasks, {round(sum(t.time for t in tasks), 1)} [h]")
 
-            for t in tasks:
-                print.add('{:4} {:10} {:^4} - {}'.format(t.name, t.due, t.project, t.description.splitlines()[0]))
+            if info == 2:
+                print.add('{:^4} {:^10} {:^4} - {}'.format('ID', 'due-date', 'P-ID', 'description'), color='orange')
+
+                for t in tasks:
+                    print.add('{:4} {:10} {:^4} - {}'.format(t.name, t.due, t.project, t.description.splitlines()[0]))
+
+            if info == 1:
+                print.add('{:^4} {:^4} {:^4} - {}'.format('ID', 'P-ID', 'time', 'description'), color='orange')
+
+                for t in tasks:
+                    print.add('{:^4} {:^4} {:^4} - {}'.format(t.name, t.project, t.time, t.description.splitlines()[0]))
+
+            else:
+                print.add('{:^4} {:^4} - {}'.format('ID', 'P-ID', 'description'), color='orange')
+
+                for t in tasks:
+                    print.add('{:4} {:^4} - {}'.format(t.name, t.project, t.description.splitlines()[0]))
 
             print.empty()
 
