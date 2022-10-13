@@ -238,24 +238,24 @@ def priority():
 @click.option('--date', '-d', default=None, type=click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d']), help='Report date')
 @click.option('--today', '-t', is_flag=True, help='Date is today')
 @click.option('--yesterday', '-y', is_flag=True, help='Date is yesterday')
-@click.option('--date-range', '-r', default=None, type=(click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d']), click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d', ])), help='Report date')
+@click.option('--range', '-r', default=None, type=(click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d']), click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d', ])), help='Report date range')
 @click.option('--machine', '-m', is_flag=True, help='Machine-readable output format')
 @click.option('--info', '-i', default=DEFAULT_INFO, count=True, help='Show info')
-def report(date, today, yesterday, date_range, machine, info):
+def report(date, today, yesterday, range, machine, info):
 	'''Create a report of completed tasks on a specific date'''
 
 	# Data validation
-	validate(any([date, today, yesterday, date_range]), 'select at least one option')
+	validate(any([date, today, yesterday, range]), 'select at least one option')
 	validate(excludes(today, yesterday), 'cannot select --today and --yesterday')
-	validate(excludes(date_range, yesterday, today, date), '--date-range excludes the other options')
+	validate(excludes(range, yesterday, today, date), '--date-range excludes the other options')
 
 	# Data manipulation
 	if today: date = now(date=True)
 	if yesterday: print("--yesterday not yet implemented"); return
 	if machine: print("--machine not yet implemented"); return
-	if not date_range: date_range = (date, date)
+	if not range: range = (date, date)
 
-	todolist.report(date_range, machine, info)
+	todolist.report(range, machine, info)
 
 
 @cli.command()
