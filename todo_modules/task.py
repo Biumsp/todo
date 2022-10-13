@@ -19,6 +19,7 @@ class Task():
         
         self.urgency    = 0
         self.importance = 0
+        self.following  = []
         self.projects   = [self.project] if self.project else [] 
         self.due = never()
 
@@ -27,7 +28,6 @@ class Task():
         return {
             'description': '',
             'status': Task.TODO,
-            'following': [],
             'followers': [],
             'project': '',
             'time': 1,
@@ -61,16 +61,6 @@ class Task():
     def status(self):
         return self.info['status']
         
-
-    @property
-    def following(self):
-        return self.info['following']
-        
-    @following.setter
-    def following(self, value):
-        self.info['following'] = value
-        self.write()
-
 
     @property
     def followers(self):

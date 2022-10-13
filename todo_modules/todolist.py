@@ -129,7 +129,6 @@ class TodoList():
         task.time = time
         task.project = project.name
 
-        self.add_following_to_task(after, task=task)
         self.add_followers_to_task(before, task=task)
         
         if not commit: commit = f'Create task "{name}"'
@@ -177,15 +176,11 @@ class TodoList():
         if time is not None: task.time = time
 
         if after:
-            self.add_following_to_task(after, task=task, override=override)
             for t in after:
                 self.add_followers_to_task([task.name], task_name=t)       
 
         if before:
             self.add_followers_to_task(before, task=task, override=override)
-            for t in before:
-                self.add_following_to_task([task.name], task_name=t) 
-
 
         if not commit: commit = f'Edit task "{name}"'
         self.git.commit(task.path, commit)
@@ -224,18 +219,6 @@ class TodoList():
         else: 
             for p in task.followers: followers.add(p)
             task.followers = list(followers)
-
-
-    def add_following_to_task(self, following, task_name=None, task=None, override=False):
-        assert task or task_name
-        
-        if task is None:task = self._get_task_by_name(task_name)
-        following = set(following)        
-
-        if override: task.following = list(following)
-        else: 
-            for p in task.following: following.add(p)
-            task.following = list(following)
             
 
     def add_due_to_task(self, date, task_name=None, task=None, override=False):
@@ -409,17 +392,17 @@ class TodoList():
             for t in self.tasks:
                 if not t.is_active(): continue
 
-                following_tasks = [self._get_task_by_name(name) for name in t.following]
-                for ft in following_tasks:
-                    if not ft.is_active(): continue
-                    if t.name not in ft.followers: ft.followers += [t.name]
-
                 sp = set(t.projects)
                 followers_tasks = [self._get_task_by_name(name) for name in t.followers]
                 for ft in followers_tasks:
                     if not ft.is_active(): continue
                     if t.name not in ft.following: ft.following += [t.name]
                     sp = sp.union(set(ft.projects))
+
+                following_tasks = [self._get_task_by_name(name) for name in t.following]
+                for ft in following_tasks:
+                    if not ft.is_active(): continue
+                    if t.name not in ft.followers: ft.followers += [t.name]
 
                 t.projects = list(sp)
 
