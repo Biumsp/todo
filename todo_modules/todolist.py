@@ -713,7 +713,7 @@ class TodoList():
         return not self._is_project_active(p)
 
 
-    def list_projects(self, sort, limit, active, completed, info):
+    def list_projects(self, sort, limit, active, completed, filter, info):
 
         if sort in ['importance', 'I']: 
             self.tasks.sort(key=lambda p: p.name, reverse=True)
@@ -734,6 +734,7 @@ class TodoList():
 
             if p.is_completed() and not completed: continue
             if p.is_active() and not active: continue
+            if filter not in p.description: continue
 
             projects.append(p)
 

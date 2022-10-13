@@ -112,14 +112,15 @@ def addp(due, no_due, description, importance, commit):
 @click.option('--no-limit', '-L', is_flag=True, default=False, help='Show all the results')
 @click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active projects')
 @click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed projects')
+@click.option('--filter', '-f', default='', help='Filter by match in description')
 @click.option('--info', '-i', default=DEFAULT_INFO, count=True, help='Show info')
-def prog(sort, limit, no_limit, active, completed, info):
+def prog(sort, limit, no_limit, active, completed, filter, info):
 	'''List all the projects'''
 
 	# Manipulate input
 	if no_limit: limit = 10000
 	
-	todolist.list_projects(sort, limit, active, completed, info)
+	todolist.list_projects(sort, limit, active, completed, filter, info)
 
 
 @cli.command(no_args_is_help=True)
