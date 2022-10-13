@@ -712,6 +712,7 @@ class TodoList():
             self.projects.sort(key=lambda p: p.urgency, reverse=True)
 
         projects = []
+        if filter: completed = True
         for p in self.projects:
             p.status = Project.ACTIVE if self._is_project_active(p) else Project.COMPLETED
 
