@@ -130,6 +130,10 @@ class TodoList():
         task.project = project.name
 
         self.add_followers_to_task(before, task=task)
+
+        if after:
+            for t in after:
+                self.add_followers_to_task([task.name], task_name=t)
         
         if not commit: commit = f'Create task "{name}"'
 
