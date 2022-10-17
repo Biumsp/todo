@@ -450,7 +450,7 @@ class TodoList():
             p.description.replace('\n', '\n   ')
         ))
 
-    def list(self, sort, projects, active, completed, deleted, waiting, filter, limit, info, one_line):
+    def list(self, sort, projects, active, completed, deleted, waiting, filter, filter_project, limit, info, one_line):
 
         if sort in ['importance', 'I']: 
             self.tasks.sort(key=lambda t: t.name, reverse=True)
@@ -476,6 +476,12 @@ class TodoList():
             if t.is_completed() and not completed: continue
             if t.is_active() and not active: continue
             if filter not in t.description: continue
+
+            if filter_project:
+                for p in [self._project_lookup(p) for p in t.projects]: 
+                    if filter_project in p.description: stop = False
+                if stop: continue
+
             if projects: 
                 projects_names = [p.name for p in projects]
                 for p in t.projects: 

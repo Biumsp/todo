@@ -48,11 +48,12 @@ DEFAULT_LIMIT = config['default_limit']
 @click.option('--deleted / --no-deleted', '-d / -D', is_flag=True, default=False, help='Include deleted tasks')
 @click.option('--waiting / --no-waiting', '-w / -W', is_flag=True, default=False, help='Include scheduled tasks')
 @click.option('--filter', '-f', default='', help='Filter by match in description')
+@click.option('--filter-project', '-F', default='', help="Filter by match in project's description")
 @click.option('--limit', '-l', default=DEFAULT_LIMIT, help='Limit the number of results')
 @click.option('--no-limit', '-L', is_flag=True, help='Show all the results')
 @click.option('--one-line / --multi-line', '-o / -O', is_flag=True, default=DEFAULT_ONELINE, help='Short output')
-def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
-		project, active, completed, deleted, waiting, filter, limit, no_limit, info, one_line):
+def cli(ctx, logging_info, logging_debug, logging_io, indent, sort, project, active, 
+		completed, deleted, waiting, filter, filter_project, limit, no_limit, info, one_line):
 	'''See all your tasks'''
 
 	# Validate input
@@ -70,7 +71,7 @@ def cli(ctx, logging_info, logging_debug, logging_io, indent, sort,
 
 	# List the task, if no sub-command is specified
 	if ctx.invoked_subcommand is None:
-		todolist.list(sort, projects, active, completed, deleted, waiting, filter, limit, info, one_line)
+		todolist.list(sort, projects, active, completed, deleted, waiting, filter, filter_project, limit, info, one_line)
 
 
 @cli.command(no_args_is_help=True)
