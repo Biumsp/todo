@@ -650,13 +650,13 @@ class TodoList():
         completed_tasks  = [t for t in self.tasks if t.is_completed()]
         
         print.add('Projects', color='orange')
-        print.add('    active: ' + str(len(active_projects)))
-        print.add('    completed: ' + str(len(self.projects) - len(active_projects)))
+        print.add(f'\tactive: {len(active_projects)}')
+        print.add(f'\tcompleted: {len(self.projects)}')
 
         print.add('Tasks', color='orange')
-        print.add('    in progress: ' + str(len(inprogress_tasks)))
-        print.add('    active: ' + str(len(active_tasks)))
-        print.add('    completed: ' + str(len(completed_tasks)))
+        print.add(f'\tin progress: {len(inprogress_tasks)}, {round(sum(t.time for t in inprogress_tasks), 1)} [h]')
+        print.add(f'\tactive: {len(active_tasks)}, {round(sum(t.time for t in active_tasks), 1)} [h]')
+        print.add(f'\tcompleted: {len(completed_tasks)}, {round(sum(t.time for t in completed_tasks), 1)} [h]')
 
         print.empty()
 
