@@ -125,30 +125,30 @@ def prog(sort, limit, no_limit, active, completed, filter, info):
 
 
 @cli.command(no_args_is_help=True)
-@click.argument('task-id', type=int, required=True)
+@click.argument('task-id', type=int, required=True, nargs=-1)
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
 def doing(task_id, commit):
 	'''Mark a task as in-progress'''
 
-	todolist.doing(task_id, commit)
+	for task in task_id: todolist.doing(task, commit)
 
 
 @cli.command(no_args_is_help=True)
-@click.argument('task-id', type=int, required=True)
+@click.argument('task-id', type=int, required=True, nargs=-1)
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
 def done(task_id, commit):
 	'''Mark a task as completed'''
 
-	todolist.done(task_id, commit)
+	for task in task_id: todolist.done(task, commit)
 
 
 @cli.command(no_args_is_help=True)
-@click.argument('task-id', type=int, required=True)
+@click.argument('task-id', type=int, required=True, nargs=-1)
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
 def restore(task_id, commit):
 	'''Restore a completed or deleted task'''
 
-	todolist.restore(task_id, commit)
+	for task in task_id: todolist.restore(task, commit)
 
 
 @cli.command(no_args_is_help=True)

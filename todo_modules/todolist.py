@@ -336,11 +336,9 @@ class TodoList():
         WORKING_HOURS_PER_DAY = 4
         
         tasks = [t for t in self.tasks if p.name in t.projects and t.is_active()]
-
-        if not tasks: return 0
-
+        
         # Estimated completion time
-        time = max(sum(t.time for t in tasks), 0.001)
+        time = max(sum(t.time for t in tasks), 1)
         
         time_left = diff_dates(p.due, now()) # days
         time_left = time_left*WORKING_HOURS_PER_DAY     # hours           
