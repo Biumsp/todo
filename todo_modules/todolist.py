@@ -520,7 +520,7 @@ class TodoList():
                     'ID', 'due-date', 'P-ID', 'status', 'I/U', 'description'))
 
                 for t in inprogress:
-                    print.add((_c.green + '{:5} {:10} {:^4}  {:^4}  {:>3}/{:<3} - ' + _c.reset).format(
+                    print.add((_c.green + '{:5} {:10} {:^4}  {:^4} {:>3}/{:<3} - ' + _c.reset).format(
                         t.name, t.due, t.project, "doing", t.importance, t.urgency) + t.description.splitlines()[0])
                 
                 if inprogress: print.add("")
