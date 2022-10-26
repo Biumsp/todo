@@ -243,7 +243,7 @@ class TodoList():
             if self._is_parent(project, new_parent):
                 fatal_error(f"project {new_parent.name} is a descendant of {project.name}")
             
-            project.parent = new_parent
+            project.parent = new_parent.name
 
         if not any([importance, due, milestone_of]):
             description = get_valid_description(None, initial_message=project.description)
@@ -455,7 +455,7 @@ class TodoList():
 
                 for p in [self._project_lookup(p) for p in sp]:
                     if p.parent: 
-                        parent = self._project_lookup(parent)
+                        parent = self._project_lookup(p.parent)
                         sp.add(parent.name)
 
                 t.projects = list(sp)
@@ -497,12 +497,13 @@ class TodoList():
 
         milestones = self._get_project_milestones(p)
 
-        print('ID: {}\nI/U {}/{}\nstatus: {}\ndue date: {}'.format(
+        print('ID: {}\nI/U {}/{}\nstatus: {}\ndue date: {}\nparent: {}'.format(
             p.name,
             p.importance, 
             p.urgency, 
             p.status, 
-            p.due
+            p.due,
+            p.parent
         ))
         print("\nMilestones:")
         self.list_projects("C", 10000, True, True, True, '', 5, project_list=[m.name for m in milestones])
@@ -767,11 +768,13 @@ class TodoList():
         return not self._is_project_active(p)
 
 
-    def list_projects(self, sort, limit, active, completed, milestones, filter, info, project_list=[]):
+    def list_projects(self, sort, limit, active, completed, milestones, filter, info, project_list=None):
         
         self._compute_projects_level()
 
-        project_list = [self._project_lookup(p, only_name=True) for p in project_list]
+        if project_list: 
+            project_list = [self._project_lookup(p, only_name=True) for p in project_list]
+        
 
         if sort in ['importance', 'I']: 
             self.tasks.sort(key=lambda p: p.name, reverse=True)
@@ -787,11 +790,11 @@ class TodoList():
             self.projects.sort(key=lambda p: p.urgency, reverse=True)
 
         projects = []
-        if filter: completed = True
+        if filter: completed = milestones = active = True
         for p in self.projects:
             p.status = Project.ACTIVE if self._is_project_active(p) else Project.COMPLETED
 
-            if project_list and p.name not in project_list: continue
+            if project_list is not None and p.name not in project_list: continue
             if p.level and not milestones: continue
             if p.is_completed() and not completed: continue
             if p.is_active() and not active: continue

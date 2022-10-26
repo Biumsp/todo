@@ -103,7 +103,7 @@ def addp(due, no_due, description, importance, milestone_of, commit):
 	'''Create a new project'''
 
 	# Manipulate input
-	if no_due: due = never()
+	if no_due: due = never(date=True)
 
 	todolist.add_project(due, description, importance, milestone_of, commit)
 
@@ -124,7 +124,7 @@ def prog(project_id, sort, limit, no_limit, active, completed, milestones, filte
 	# Manipulate input
 	if no_limit: limit = 10000
 	
-	todolist.list_projects(sort, limit, active, completed, milestones, filter, info, project_id)
+	todolist.list_projects(sort, limit, active, completed, milestones, filter, info, project_id if project_id else None)
 
 
 @cli.command()

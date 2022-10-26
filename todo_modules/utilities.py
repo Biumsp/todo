@@ -31,7 +31,8 @@ def now(date=False):
     else:
         return datetime.now().strftime(r"%Y-%m-%d")
 
-def never():
+def never(date=False):
+    if date: return datetime.strptime("2998-12-31", r"%Y-%m-%d")
     return "2998-12-31"
 
 def num2str(x):
