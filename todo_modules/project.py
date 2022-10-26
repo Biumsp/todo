@@ -17,6 +17,7 @@ class Project():
         self.path = os.path.join(Project.todolist.path, name + '.project')
         self.info = self.read()
         self.urgency = 0
+        self.level = 0
 
         self.write() 
 
@@ -26,7 +27,8 @@ class Project():
             'description': '',
             'importance': 100,
             'due': never(),
-            'created': now()
+            'created': now(),
+            'parent': ''
         }
 
 
@@ -51,12 +53,12 @@ class Project():
         
 
     @property
-    def following(self):
-        return self.info['following']
+    def parent(self):
+        return self.info['parent']
         
-    @following.setter
-    def following(self, value):
-        self.info['following'] = value
+    @parent.setter
+    def parent(self, value):
+        self.info['parent'] = value
         self.write()
 
 

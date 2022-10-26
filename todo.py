@@ -97,31 +97,55 @@ def add(project, description, after, before, time, wait, commit):
 @click.option('--no-due', '-D', is_flag=True, help='No due date')
 @click.option('--description', '-d', type=str, help='Project description')
 @click.option('--importance', '-I', default=100, show_default=True, help='Project relative importance')
+@click.option('--milestone-of', '-m', type=int, help='The parent project of this milestone')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def addp(due, no_due, description, importance, commit):
+def addp(due, no_due, description, importance, milestone_of, commit):
 	'''Create a new project'''
 
 	# Manipulate input
 	if no_due: due = never()
 
-	todolist.add_project(due, description, importance, commit)
+	todolist.add_project(due, description, importance, milestone_of, commit)
 
 
 @cli.command()
+@click.argument('project-id', type=int, nargs=-1)
 @click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I', 'creation', 'C']), help='Order by')
 @click.option('--limit', '-l', type=int, default=100, help='Limit the number of results')
 @click.option('--no-limit', '-L', is_flag=True, default=False, help='Show all the results')
 @click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active projects')
 @click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed projects')
+@click.option('--milestones / --no-milestones', '-m / -M', is_flag=True, default=False, help='Include milestones projects')
 @click.option('--filter', '-f', default='', help='Filter by match in description')
 @click.option('--info', '-i', default=DEFAULT_INFO, count=True, help='Show info')
-def prog(sort, limit, no_limit, active, completed, filter, info):
+def prog(project_id, sort, limit, no_limit, active, completed, milestones, filter, info):
 	'''List all the projects'''
 
 	# Manipulate input
 	if no_limit: limit = 10000
 	
-	todolist.list_projects(sort, limit, active, completed, filter, info)
+	todolist.list_projects(sort, limit, active, completed, milestones, filter, info, project_id)
+
+
+@cli.command()
+@click.argument('project-id', type=int, nargs=-1)
+@click.option('--sort', '-s', default=DEFAULT_SORT, type=click.Choice(['urgency', 'U', 'importance', 'I', 'creation', 'C']), help='Order by')
+@click.option('--limit', '-l', type=int, default=100, help='Limit the number of results')
+@click.option('--no-limit', '-L', is_flag=True, default=False, help='Show all the results')
+@click.option('--active / --no-active', '-a / -A', is_flag=True, default=True, help='Include active projects')
+@click.option('--completed / --no-completed', '-c / -C', is_flag=True, default=False, help='Include completed projects')
+@click.option('--info', '-i', default=DEFAULT_INFO, count=True, help='Show info')
+def tree(project_id, sort, limit, no_limit, active, completed, info):
+	'''List all the projects'''
+
+	# Manipulate input
+	if no_limit: limit = 10000
+	
+	if project_id:
+		for project in project_id: todolist.tree_project(sort, limit, active, completed, info, project=project)
+	
+	else: 
+		todolist.tree_project(sort, limit, active, completed, info)
 
 
 @cli.command(no_args_is_help=True)
@@ -199,8 +223,9 @@ def edit(task_id, project, time, wait, after, before, override, commit):
 @click.option('--due', '-due', default=None, type=click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d']), help='Due date')
 @click.option('--delete-due', '-D', is_flag=True, help='Due date')
 @click.option('--importance', '-I', type=int, help='Project relative importance')
+@click.option('--milestone-of', '-m', type=int, help='The parent project of this milestone')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def editp(project_id, due, delete_due, importance, commit):
+def editp(project_id, due, delete_due, importance, milestone_of, commit):
 	'''Edit a project'''
 	
 	# Validate input
@@ -209,7 +234,7 @@ def editp(project_id, due, delete_due, importance, commit):
 	# Manipulate input
 	if delete_due: due = never()
 
-	todolist.edit_project(project_id, due, importance, commit)
+	todolist.edit_project(project_id, due, importance, milestone_of, commit)
 
 
 @cli.command(no_args_is_help=True)

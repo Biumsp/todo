@@ -77,7 +77,7 @@ class TodoList():
         return matches[0].name
 
     
-    def _project_lookup(self, name):
+    def _project_lookup(self, name, only_name=False):
         '''Matches the name with the existing projects and completes it'''
 
         try: name = int(name)
@@ -88,6 +88,7 @@ class TodoList():
         if len(matches) == 0:
             fatal_error(f'no project numbered "{name}"')
         
+        if only_name: return matches[0].name
         return matches[0]
 
 
@@ -104,6 +105,28 @@ class TodoList():
             return num2str(max([p.iname for p in self.projects]) + 1)
         else:
             return '0000'
+
+    def _compute_projects_level(self):
+
+        def compute_level(projects, done):
+            if not projects: return
+
+            missing = []
+            for p in projects:
+                if p.parent == '':
+                    done.append(p.name)
+
+                else:
+                    parent = self._project_lookup(p.parent)
+                    if parent.name in done:
+                        p.level = parent.level + 1
+                        done.append(p.name)
+                    else:
+                        missing.append(p)
+            
+            return compute_level(missing, done)
+
+        compute_level(self.projects, [])
 
 
     def add(self, project, description, after, before, time, wait, commit):
@@ -140,9 +163,10 @@ class TodoList():
         print(f'Created task {task.name}')
 
 
-    def add_project(self, due, description, importance, commit):
+    def add_project(self, due, description, importance, milestone_of, commit):
 
         description = get_valid_description(description)
+        if milestone_of is not None: parent = self._project_lookup(milestone_of)
 
         name = self._available_project_name()
         project = Project(name)
@@ -151,10 +175,15 @@ class TodoList():
         project.importance = int(importance)
         project.description = description
 
+        if milestone_of is not None: project.parent = parent.name
+
         if not commit: commit = f'Create project "{name}"'
         self.git.commit(project.path, commit)
 
-        print(f'Created project {name}')
+        if milestone_of:
+            print(f'Created project {name}, milestone of {parent.name}')
+        else:
+            print(f'Created project {name}')
 
 
     def edit(self, name, project, time, wait, after, before, override, commit):
@@ -190,7 +219,15 @@ class TodoList():
         print(f'Edited task {task.name}: {task.description.splitlines()[0]}')
 
     
-    def edit_project(self, project_name, due, importance, commit):
+    def _is_parent(self, candidate_parent, project):
+        
+        if not project.parent: return False
+        if project.parent == candidate_parent.name: return True
+
+        return self._is_parent(candidate_parent, self._get_project_by_name(project.parent))
+
+    
+    def edit_project(self, project_name, due, importance, milestone_of, commit):
         project = self._get_project_by_name(project_name)
 
         try: 
@@ -201,7 +238,14 @@ class TodoList():
                 
         if importance: project.importance = importance
 
-        if not any([importance, due]):
+        if milestone_of: 
+            new_parent = self._project_lookup(milestone_of)
+            if self._is_parent(project, new_parent):
+                fatal_error(f"project {new_parent.name} is a descendant of {project.name}")
+            
+            project.parent = new_parent
+
+        if not any([importance, due, milestone_of]):
             description = get_valid_description(None, initial_message=project.description)
             project.description = description
 
@@ -393,7 +437,7 @@ class TodoList():
         self.tasks = self._get_tasks()
         self.projects = self._get_projects()
 
-        for _ in range(4):
+        for _ in range(5):
             for t in self.tasks:
                 if not t.is_active(): continue
 
@@ -409,6 +453,11 @@ class TodoList():
                     if not ft.is_active(): continue
                     if t.name not in ft.followers: ft.followers += [t.name]
 
+                for p in [self._project_lookup(p) for p in sp]:
+                    if p.parent: 
+                        parent = self._project_lookup(parent)
+                        sp.add(parent.name)
+
                 t.projects = list(sp)
 
         for p in self.projects:
@@ -420,6 +469,10 @@ class TodoList():
             t.urgency = max([p.urgency for p in projects])
         
         self.compute_importance()
+
+    
+    def _get_project_milestones(self, project):
+        return [p for p in self.projects if p.parent == project.name]
 
 
     def show(self, task_name):
@@ -442,14 +495,19 @@ class TodoList():
     def show_project(self, project_name):
         p = self._get_project_by_name(project_name)
 
-        print('ID: {}\nI/U {}/{}\nstatus: {}\ndue date: {}\n   {}'.format(
+        milestones = self._get_project_milestones(p)
+
+        print('ID: {}\nI/U {}/{}\nstatus: {}\ndue date: {}'.format(
             p.name,
             p.importance, 
             p.urgency, 
             p.status, 
-            p.due, 
-            p.description.replace('\n', '\n   ')
+            p.due
         ))
+        print("\nMilestones:")
+        self.list_projects("C", 10000, True, True, True, '', 5, project_list=[m.name for m in milestones])
+        print("\nDescription:\n   {}".format(p.description.replace('\n', '\n   ')))
+        
 
     def list(self, sort, projects, active, completed, deleted, waiting, filter, filter_project, limit, info, one_line):
 
@@ -709,7 +767,11 @@ class TodoList():
         return not self._is_project_active(p)
 
 
-    def list_projects(self, sort, limit, active, completed, filter, info):
+    def list_projects(self, sort, limit, active, completed, milestones, filter, info, project_list=[]):
+        
+        self._compute_projects_level()
+
+        project_list = [self._project_lookup(p, only_name=True) for p in project_list]
 
         if sort in ['importance', 'I']: 
             self.tasks.sort(key=lambda p: p.name, reverse=True)
@@ -729,6 +791,8 @@ class TodoList():
         for p in self.projects:
             p.status = Project.ACTIVE if self._is_project_active(p) else Project.COMPLETED
 
+            if project_list and p.name not in project_list: continue
+            if p.level and not milestones: continue
             if p.is_completed() and not completed: continue
             if p.is_active() and not active: continue
             if filter not in p.description: continue
