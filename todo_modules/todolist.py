@@ -19,8 +19,6 @@ class TodoList():
         Project.todolist = self
         Task.todolist = self
 
-        self.tasks = self._get_tasks()
-        self.projects = self._get_projects()
         self.refresh()
         
 
@@ -391,6 +389,9 @@ class TodoList():
 
 
     def refresh(self):
+
+        self.tasks = self._get_tasks()
+        self.projects = self._get_projects()
 
         for _ in range(4):
             for t in self.tasks:
