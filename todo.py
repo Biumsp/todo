@@ -142,10 +142,10 @@ def tree(project_id, sort, limit, no_limit, active, completed, info):
 	if no_limit: limit = 10000
 	
 	if project_id:
-		for project in project_id: todolist.tree_project(sort, limit, active, completed, info, project=project)
+		for project in project_id: todolist.tree(sort, limit, active, completed, info, project=project)
 	
 	else: 
-		todolist.tree_project(sort, limit, active, completed, info)
+		todolist.tree(sort, limit, active, completed, info)
 
 
 @cli.command(no_args_is_help=True)
@@ -159,9 +159,13 @@ def doing(task_id, commit):
 
 @cli.command(no_args_is_help=True)
 @click.argument('task-id', type=int, required=True, nargs=-1)
+@click.option('--time', '-t', type=float, help='Measured time to complete the task')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def done(task_id, commit):
+def done(task_id, time, commit):
 	'''Mark a task as completed'''
+
+	if time is not None:
+		for task in task_id: todolist.edit(task, None, time, None, [], [], True, commit)
 
 	for task in task_id: todolist.done(task, commit)
 
@@ -224,8 +228,9 @@ def edit(task_id, project, time, wait, after, before, override, commit):
 @click.option('--delete-due', '-D', is_flag=True, help='Due date')
 @click.option('--importance', '-I', type=int, help='Project relative importance')
 @click.option('--milestone-of', '-m', type=int, help='The parent project of this milestone')
+@click.option('--delete-parent', '-M', is_flag=True, help='Delete the parent project')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def editp(project_id, due, delete_due, importance, milestone_of, commit):
+def editp(project_id, due, delete_due, importance, milestone_of, delete_parent, commit):
 	'''Edit a project'''
 	
 	# Validate input
@@ -234,7 +239,18 @@ def editp(project_id, due, delete_due, importance, milestone_of, commit):
 	# Manipulate input
 	if delete_due: due = never()
 
-	todolist.edit_project(project_id, due, importance, milestone_of, commit)
+	todolist.edit_project(project_id, due, importance, milestone_of, delete_parent, commit)
+
+
+@cli.command(no_args_is_help=True)
+@click.argument('task-id', type=int, required=True, nargs=-1)
+@click.argument('date', required=True, type=click.DateTime(formats=[r'%Y-%m-%d', r'%m-%d', ]))
+@click.option('--git', '-g', 'commit', type=str, help='Git commit message')
+def wait(task_id, date, commit):
+	'''Wait to create the task'''
+
+	for task in task_id: 
+		todolist.edit(task, None, None, date, [], [], False, commit)
 
 
 @cli.command(no_args_is_help=True)

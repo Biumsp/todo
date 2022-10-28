@@ -140,7 +140,11 @@ class Task():
 
     def done(self):
         self.info['status'] = Task.DONE
-        self.info['completed'] = now()
+        try: 
+            day = os.environ['TODO_TODAY']
+            self.info['completed'] = day
+        except:
+            self.info['completed'] = now()
         self.write()
 
 

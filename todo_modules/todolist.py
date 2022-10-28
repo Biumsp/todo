@@ -4,6 +4,7 @@ from .utilities import fatal_error, get_valid_description
 from .utilities import decorate_class, debugger, logger, _c
 from .task import Task
 from .project import Project
+from biumsputils.print import Print
 import os, math
 
 class LookupError(Exception): pass
@@ -227,7 +228,7 @@ class TodoList():
         return self._is_parent(candidate_parent, self._get_project_by_name(project.parent))
 
     
-    def edit_project(self, project_name, due, importance, milestone_of, commit):
+    def edit_project(self, project_name, due, importance, milestone_of, delete_parent, commit):
         project = self._get_project_by_name(project_name)
 
         try: 
@@ -245,7 +246,9 @@ class TodoList():
             
             project.parent = new_parent.name
 
-        if not any([importance, due, milestone_of]):
+        if delete_parent: project.parent = ''
+
+        if not any([importance, due, milestone_of, delete_parent]):
             description = get_valid_description(None, initial_message=project.description)
             project.description = description
 
@@ -767,13 +770,47 @@ class TodoList():
     def _is_project_completed(self, p):
         return not self._is_project_active(p)
 
+    
+    def _get_children(self, project):
+        return [p for p in self.projects if p.parent == project.name]
 
-    def list_projects(self, sort, limit, active, completed, milestones, filter, info, project_list=None):
+
+    def tree(self, sort, limit, active, completed, info, project=None):
+
+        def project_tree(projects):
+            if not projects: return
+
+            for p in projects:
+                self.list_projects(sort, limit, active, completed, True, '', info, project_list=[p.name], header=False)
+                children = self._get_children(p)
+
+                if not children: continue
+                print.up()
+                project_tree(children)
+                print.down()
+                print()
+
+
+        self._compute_projects_level()
+
+        if project: 
+            project = self._project_lookup(project, only_name=True)
+            roots = [p for p in self.projects if p.level == 0 and p.name == project]
+        else:
+            roots = [p for p in self.projects if p.level == 0]
+        
+        print.auto_indent()
+        project_tree(roots)
+        print.no_indent()
+
+
+    def list_projects(self, sort, limit, active, completed, milestones, filter, info, project_list=None, header=True):
         
         self._compute_projects_level()
 
         if project_list: 
             project_list = [self._project_lookup(p, only_name=True) for p in project_list]
+            milestones = True
         
 
         if sort in ['importance', 'I']: 
@@ -805,7 +842,7 @@ class TodoList():
         if limit < len(projects): projects = projects[:limit]
 
         if info > 2:
-            print.add((_c.orange + 'P-ID  {:9} {:^10} {:^7} - {}' + _c.reset).format(
+            if header: print.add((_c.orange + 'P-ID  {:9} {:^10} {:^7} - {}' + _c.reset).format(
                 'status', 'due-date', 'I/U', 'description'))
 
             for p in projects:
@@ -813,7 +850,7 @@ class TodoList():
                     p.name, p.status, p.due, p.importance, p.urgency, p.description.splitlines()[0]))
 
         elif info == 2:
-            print.add((_c.orange + 'P-ID {:^10}  {:^7} - {}' + _c.reset).format(
+            if header: print.add((_c.orange + 'P-ID {:^10}  {:^7} - {}' + _c.reset).format(
                 'due-date', 'I/U', 'description'))
 
             for p in projects:
@@ -821,7 +858,7 @@ class TodoList():
                     p.name, p.due, p.importance, p.urgency, p.description.splitlines()[0]))
 
         elif info == 1:
-            print.add((_c.orange + 'P-ID  {:^10} - {}' + _c.reset).format(
+            if header: print.add((_c.orange + 'P-ID  {:^10} - {}' + _c.reset).format(
                 'due-date', 'description'))
 
             for p in projects:
@@ -829,7 +866,7 @@ class TodoList():
                     p.name, p.due, p.description.splitlines()[0]))
 
         elif info == 0:
-            print.add((_c.orange + 'P-ID - {}' + _c.reset).format('description'))
+            if header: print.add((_c.orange + 'P-ID - {}' + _c.reset).format('description'))
 
             for p in projects:
                 print.add((_c.green + '{:4} - ' + _c.reset + '{}').format(p.name, p.description.splitlines()[0]))
@@ -837,4 +874,4 @@ class TodoList():
 
         print.empty()
 
-TodoList = decorate_class(TodoList, debugger(logger, 'TodoList'))
+#TodoList = decorate_class(TodoList, debugger(logger, 'TodoList'))
