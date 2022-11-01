@@ -239,7 +239,7 @@ class TodoList():
                 
         if importance: project.importance = importance
 
-        if milestone_of: 
+        if milestone_of is not None: 
             new_parent = self._project_lookup(milestone_of)
             if self._is_parent(project, new_parent):
                 fatal_error(f"project {new_parent.name} is a descendant of {project.name}")
@@ -248,7 +248,7 @@ class TodoList():
 
         if delete_parent: project.parent = ''
 
-        if not any([importance, due, milestone_of, delete_parent]):
+        if not any([importance, due, milestone_of is not None, delete_parent]):
             description = get_valid_description(None, initial_message=project.description)
             project.description = description
 
