@@ -482,11 +482,12 @@ class TodoList():
         t = self._get_task_by_name(task_name)
         project = self._get_project_by_name(t.project)
 
-        print('ID: {}\nI/U {}/{}\nstatus: {}\nproject: {}\ndue: {}\ntime: {} [h]\nfollowing: {}\nfollowers: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\n   {}'.format(
+        print('ID: {}\nI/U {}/{}\nstatus: {}\nproject: {} - {}\ndue: {}\ntime: {} [h]\nfollowing: {}\nfollowers: {}\ncreated: {}\ncompleted: {}\ndeleted: {}\n   {}'.format(
             t.name,
             t.importance, t.urgency, 
             t.status, 
             project.name,
+            project.description.splitlines()[0],
             project.due,
             t.time,
             ''.join(t.following),
