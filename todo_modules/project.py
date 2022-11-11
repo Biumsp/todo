@@ -61,6 +61,16 @@ class Project():
         self.info['parent'] = value
         self.write()
 
+    
+    @property
+    def reference(self):
+        return self.info['reference']
+        
+    @reference.setter
+    def reference(self, value):
+        self.info['reference'] = value
+        self.write()
+
 
     @property
     def followers(self):
