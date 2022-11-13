@@ -98,14 +98,15 @@ def add(project, description, after, before, time, wait, commit):
 @click.option('--description', '-d', type=str, help='Project description')
 @click.option('--importance', '-I', default=100, show_default=True, help='Project relative importance')
 @click.option('--milestone-of', '-m', type=int, help='The parent project of this milestone')
+@click.option('--reference', '-r', default="", help='The reference person of the project')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def addp(due, no_due, description, importance, milestone_of, commit):
+def addp(due, no_due, description, importance, milestone_of, reference, commit):
 	'''Create a new project'''
 
 	# Manipulate input
 	if no_due: due = never(date=True)
 
-	todolist.add_project(due, description, importance, milestone_of, commit)
+	todolist.add_project(due, description, importance, milestone_of, reference, commit)
 
 
 @cli.command()
@@ -229,8 +230,9 @@ def edit(task_id, project, time, wait, after, before, override, commit):
 @click.option('--importance', '-I', type=int, help='Project relative importance')
 @click.option('--milestone-of', '-m', type=int, help='The parent project of this milestone')
 @click.option('--delete-parent', '-M', is_flag=True, help='Delete the parent project')
+@click.option('--reference', '-r', type=str, help='The reference person of the project')
 @click.option('--git', '-g', 'commit', type=str, help='Git commit message')
-def editp(project_id, due, delete_due, importance, milestone_of, delete_parent, commit):
+def editp(project_id, due, delete_due, importance, milestone_of, delete_parent, reference, commit):
 	'''Edit a project'''
 	
 	# Validate input
@@ -239,7 +241,7 @@ def editp(project_id, due, delete_due, importance, milestone_of, delete_parent, 
 	# Manipulate input
 	if delete_due: due = never()
 
-	todolist.edit_project(project_id, due, importance, milestone_of, delete_parent, commit)
+	todolist.edit_project(project_id, due, importance, milestone_of, delete_parent, reference, commit)
 
 
 @cli.command(no_args_is_help=True)

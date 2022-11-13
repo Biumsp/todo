@@ -164,7 +164,7 @@ class TodoList():
         print(f'Created task {task.name}')
 
 
-    def add_project(self, due, description, importance, milestone_of, commit):
+    def add_project(self, due, description, importance, milestone_of, reference, commit):
 
         description = get_valid_description(description)
         if milestone_of is not None: parent = self._project_lookup(milestone_of)
@@ -175,6 +175,7 @@ class TodoList():
         project.due = self._validate_date(due)
         project.importance = int(importance)
         project.description = description
+        project.reference = reference
 
         if milestone_of is not None: project.parent = parent.name
 
@@ -228,7 +229,7 @@ class TodoList():
         return self._is_parent(candidate_parent, self._get_project_by_name(project.parent))
 
     
-    def edit_project(self, project_name, due, importance, milestone_of, delete_parent, commit):
+    def edit_project(self, project_name, due, importance, milestone_of, delete_parent, reference, commit):
         project = self._get_project_by_name(project_name)
 
         try: 
@@ -239,6 +240,8 @@ class TodoList():
                 
         if importance: project.importance = importance
 
+        if reference is not None: project.reference = reference
+
         if milestone_of is not None: 
             new_parent = self._project_lookup(milestone_of)
             if self._is_parent(project, new_parent):
@@ -248,7 +251,7 @@ class TodoList():
 
         if delete_parent: project.parent = ''
 
-        if not any([importance, due, milestone_of is not None, delete_parent]):
+        if not any([importance, due, milestone_of is not None, reference is not None, delete_parent]):
             description = get_valid_description(None, initial_message=project.description)
             project.description = description
 
@@ -501,10 +504,11 @@ class TodoList():
 
         milestones = self._get_project_milestones(p)
 
-        print('ID: {}\nI/U {}/{}\nstatus: {}\ndue date: {}\nparent: {}'.format(
+        print('ID: {}\nI/U {}/{}\nReference: {}\nstatus: {}\ndue date: {}\nparent: {}'.format(
             p.name,
             p.importance, 
-            p.urgency, 
+            p.urgency,
+            p.reference, 
             p.status, 
             p.due,
             p.parent
@@ -836,7 +840,7 @@ class TodoList():
             if p.level and not milestones: continue
             if p.is_completed() and not completed: continue
             if p.is_active() and not active: continue
-            if filter not in p.description: continue
+            if filter not in p.description+p.reference: continue
 
             projects.append(p)
 
